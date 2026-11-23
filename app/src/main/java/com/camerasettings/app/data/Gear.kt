@@ -48,7 +48,7 @@ data class CameraBody(
     val jpegMb: Double get() = megapixels * 0.33
 
     private companion object {
-        val CANON_CR2 = setOf("5div", "6dii", "6d", "80d", "7dii", "800d", "2000d", "4000d")
+        val CANON_CR2 = setOf("5div", "6dii", "6d", "80d", "7dii", "750d", "800d", "2000d", "4000d")
     }
 }
 
@@ -109,6 +109,7 @@ object Gear {
         c("80d", Brand.CANON, "EOS 80D", CAPSC, 24.0, false, 3200, false, "EF-S", ml = false),
         c("7dii", Brand.CANON, "EOS 7D Mark II", CAPSC, 20.0, false, 3200, false, "EF-S", ml = false),
         c("850d", Brand.CANON, "EOS 850D / Rebel T8i", CAPSC, 24.0, false, 3200, false, "EF-S", ml = false),
+        c("750d", Brand.CANON, "EOS 750D / Rebel T6i", CAPSC, 24.0, false, 3200, false, "EF-S", ml = false),
         c("800d", Brand.CANON, "EOS 800D / Rebel T7i", CAPSC, 24.0, false, 3200, false, "EF-S", ml = false),
         c("250d", Brand.CANON, "EOS 250D / Rebel SL3", CAPSC, 24.0, false, 3200, false, "EF-S", ml = false),
         c("2000d", Brand.CANON, "EOS 2000D / Rebel T7", CAPSC, 24.0, false, 1600, false, "EF-S", ml = false),

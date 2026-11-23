@@ -16,10 +16,10 @@ enum class Level(val label: String, val blurb: String) {
 class AppState(context: Context) {
     private val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
-    var cameraId by mutableStateOf(prefs.getString("camera", null)); private set
-    var brand by mutableStateOf(prefs.getString("brand", null)?.let { runCatching { Brand.valueOf(it) }.getOrNull() } ?: Gear.camera(prefs.getString("camera", null))?.brand)
+    var cameraId by mutableStateOf(prefs.getString("camera", DEFAULT_CAMERA)); private set
+    var brand by mutableStateOf(prefs.getString("brand", null)?.let { runCatching { Brand.valueOf(it) }.getOrNull() } ?: Gear.camera(prefs.getString("camera", DEFAULT_CAMERA))?.brand)
         private set
-    var lensIds by mutableStateOf(prefs.getStringSet("lenses", emptySet())!!.toSet()); private set
+    var lensIds by mutableStateOf(prefs.getStringSet("lenses", DEFAULT_LENSES)!!.toSet()); private set
     var customLens by mutableStateOf(loadCustomLens()); private set
     var support by mutableStateOf(runCatching { Support.valueOf(prefs.getString("support", "HANDHELD")!!) }.getOrDefault(Support.HANDHELD)); private set
     var level by mutableStateOf(runCatching { Level.valueOf(prefs.getString("level", "NEW")!!) }.getOrDefault(Level.NEW)); private set
@@ -118,5 +118,9 @@ class AppState(context: Context) {
 
     companion object {
         const val CUSTOM_LENS_ID = "custom"
+
+        /** The owner's camera (Canon EOS 750D, from a photo's EXIF data). Lens to be confirmed. */
+        const val DEFAULT_CAMERA = "750d"
+        val DEFAULT_LENSES = setOf("efs18-135")
     }
 }

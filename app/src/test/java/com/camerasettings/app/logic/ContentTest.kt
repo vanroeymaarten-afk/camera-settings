@@ -107,4 +107,13 @@ class ContentTest {
         assertEquals("ARW", Gear.camera("a7iv")!!.rawFormat)
         assertEquals(Checklist.allIds.size, Checklist.allIds.toSet().size)
     }
+
+    @Test
+    fun defaultCameraIsTheOwnersEos750D() {
+        val body = Gear.camera(com.camerasettings.app.data.AppState.DEFAULT_CAMERA)!!
+        assertEquals("EOS 750D / Rebel T6i", body.name)
+        assertEquals("CR2", body.rawFormat)
+        val fits = Gear.lensesFor(body).map { it.id }
+        com.camerasettings.app.data.AppState.DEFAULT_LENSES.forEach { assertTrue(it, it in fits) }
+    }
 }
