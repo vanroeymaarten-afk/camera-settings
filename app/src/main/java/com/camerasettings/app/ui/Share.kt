@@ -32,11 +32,11 @@ object Share {
     fun preset(ctx: Context, p: EditPreset) {
         val f = File(dir(ctx), Presets.fileName(p))
         f.writeText(Presets.toXmp(p))
-        send(ctx, f, "application/octet-stream", "Lightroom preset: Chile - ${p.name}")
+        send(ctx, f, "application/octet-stream", "Lightroom preset: Camera Coach - ${p.name}")
     }
 
     fun allPresets(ctx: Context) {
-        val f = File(dir(ctx), "Camera Coach Chile presets.zip")
+        val f = File(dir(ctx), "Camera Coach presets.zip")
         ZipOutputStream(f.outputStream()).use { zip ->
             Presets.all.forEach { p ->
                 zip.putNextEntry(ZipEntry(Presets.fileName(p)))
@@ -44,6 +44,6 @@ object Share {
                 zip.closeEntry()
             }
         }
-        send(ctx, f, "application/zip", "Camera Coach: all Chile Lightroom presets")
+        send(ctx, f, "application/zip", "Camera Coach: all Lightroom presets")
     }
 }

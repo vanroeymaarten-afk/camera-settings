@@ -58,8 +58,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.camerasettings.app.data.AppState
-import com.camerasettings.app.data.Places
-import com.camerasettings.app.data.Region
+import com.camerasettings.app.data.Place
 import com.camerasettings.app.logic.Advisor
 import com.camerasettings.app.logic.Astro
 import com.camerasettings.app.logic.Exposure
@@ -79,69 +78,37 @@ private val shortDate = DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH)
 private fun ZonedDateTime?.hm(): String = this?.format(timeFmt) ?: "—"
 
 @Composable
-fun SkyScreen(state: AppState) {
-    val ctx = LocalContext.current
-    val place = state.place
-    val zone = remember(place.zone) { runCatching { ZoneId.of(place.zone) }.getOrDefault(ZoneId.systemDefault()) }
-    var dateStr by rememberSaveable { mutableStateOf(LocalDate.now(zone).toString()) }
-    val date = LocalDate.parse(dateStr)
-    var placesOpen by rememberSaveable { mutableStateOf(false) }
-    var gpsMessage by remember { mutableStateOf<String?>(null) }
-
-    val plan = remember(date, place) { Astro.planDay(date, zone, place.lat, place.lon) }
-
-    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
-        if (granted.values.any { it }) {
-            gpsMessage = "Finding you… (outdoors works best)"
-            locate(ctx) { loc ->
-                if (loc != null) {
-                    state.setGps(loc.latitude, loc.longitude)
-                    gpsMessage = null
-                    placesOpen = false
-                } else {
-                    gpsMessage = "Couldn't get a location. Go outside, or pick a place from the list."
-                }
-            }
-        } else {
-            gpsMessage = "No location permission: pick a place from the list instead."
+fun SkyScreen(state: AppState, place: Place?, onPickPlace: () -> Unit) {
+    if (place == null) {
+        Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center) {
+            ScreenTitle("Plan your light", "Choose a place to see golden hour, sunset, moon and stars.")
+            Spacer(Modifier.height(16.dp))
+            androidx.compose.material3.Button(onClick = onPickPlace) { Text("Choose a place") }
         }
+        return
     }
+    val zone = place.zoneId
+    var dateStr by rememberSaveable(place.zone) { mutableStateOf(LocalDate.now(zone).toString()) }
+    val date = LocalDate.parse(dateStr)
+    val plan = remember(date, place) { Astro.planDay(date, zone, place.lat, place.lon) }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        ScreenTitle("Sun & Stars", "Golden hour, moon and night-sky times. Calculated on the phone, no internet needed.", eyebrow = "Plan")
+        ScreenTitle("Plan your light", "Golden hour, moon and night-sky times anywhere in the world. Calculated on the phone, no internet needed.", eyebrow = "Plan")
 
         // ------------------------------------------------ place
         SectionCard(null) {
-            Row(Modifier.fillMaxWidth().clickable { placesOpen = !placesOpen }, verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().clickable(onClick = onPickPlace), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.MyLocation, null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(place.name, style = MaterialTheme.typography.titleMedium)
-                    Text(place.region?.title ?: place.note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(place.subtitle + " · " + place.zone.substringAfter('/').replace('_', ' ') + " time", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Icon(if (placesOpen) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, "Change place")
+                Text("Change", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             }
-            if (placesOpen) {
-                Spacer(Modifier.height(8.dp))
-                OutlinedButton(onClick = {
-                    permission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
-                }) {
-                    Icon(Icons.Filled.MyLocation, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Use where I am now")
-                }
-                Region.entries.forEach { r ->
-                    SectionLabel(r.title)
-                    Places.all.filter { it.region == r }.forEach { p ->
-                        Row(Modifier.fillMaxWidth().clickable { state.selectPlace(p.id); placesOpen = false }, verticalAlignment = Alignment.CenterVertically) {
-                            RadioButton(selected = state.placeId == p.id, onClick = { state.selectPlace(p.id); placesOpen = false })
-                            Text(p.name, style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
-                }
-            }
-            gpsMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
         }
 
         // ------------------------------------------------ date
@@ -165,7 +132,7 @@ fun SkyScreen(state: AppState) {
             TimeRow(Dot.Blue, "Blue hour", "${s.blueEveningStart.hm()} – ${s.blueEveningEnd.hm()}")
             TimeRow(Dot.Night, "Dark sky from", s.astroDusk.hm())
             Spacer(Modifier.height(4.dp))
-            Text("Local time in ${place.region?.title ?: "your area"}.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Local time at ${place.name}.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         // ------------------------------------------------ moon
@@ -219,7 +186,7 @@ fun SkyScreen(state: AppState) {
 
         // ------------------------------------------------ star shutter table
         val body = state.camera
-        if (body != null && state.lenses.isNotEmpty()) {
+        if (body != null && state.lenses.isNotEmpty() && !state.simple) {
             SectionCard("Longest shutter before stars streak", icon = Icons.Filled.Timer) {
                 state.lenses.forEach { lens ->
                     val f = lens.minFocal
@@ -335,33 +302,5 @@ fun MoonDisc(illumination: Double, waxing: Boolean, size: Int = 40) {
             close()
         }
         drawPath(path, lit)
-    }
-}
-
-@SuppressLint("MissingPermission")
-private fun locate(ctx: Context, onResult: (Location?) -> Unit) {
-    val lm = ctx.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-    try {
-        val providers = lm.getProviders(true)
-        val last = providers.mapNotNull { runCatching { lm.getLastKnownLocation(it) }.getOrNull() }
-            .maxByOrNull { it.time }
-        if (last != null && System.currentTimeMillis() - last.time < 6 * 3600_000L) {
-            onResult(last)
-            return
-        }
-        val provider = when {
-            LocationManager.GPS_PROVIDER in providers -> LocationManager.GPS_PROVIDER
-            LocationManager.NETWORK_PROVIDER in providers -> LocationManager.NETWORK_PROVIDER
-            else -> providers.firstOrNull()
-        }
-        if (provider == null) { onResult(last); return }
-        if (Build.VERSION.SDK_INT >= 30) {
-            lm.getCurrentLocation(provider, null, ctx.mainExecutor) { onResult(it ?: last) }
-        } else {
-            @Suppress("DEPRECATION")
-            lm.requestSingleUpdate(provider, { onResult(it) }, android.os.Looper.getMainLooper())
-        }
-    } catch (e: SecurityException) {
-        onResult(null)
     }
 }

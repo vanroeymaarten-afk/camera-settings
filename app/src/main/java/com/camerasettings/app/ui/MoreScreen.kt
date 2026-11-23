@@ -22,6 +22,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Backpack
+import androidx.compose.material.icons.filled.CenterFocusStrong
+import androidx.compose.material.icons.filled.Exposure
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Info
@@ -38,6 +41,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -54,11 +58,13 @@ import androidx.compose.ui.unit.dp
 import com.camerasettings.app.BuildConfig
 import com.camerasettings.app.data.AppState
 import com.camerasettings.app.data.Checklist
-import com.camerasettings.app.data.Shots
+import com.camerasettings.app.data.Photos
+import com.camerasettings.app.data.Level
 import com.camerasettings.app.data.Software
 import com.camerasettings.app.data.Storage
 import com.camerasettings.app.logic.Advisor
 import com.camerasettings.app.logic.EditPreset
+import com.camerasettings.app.logic.Exposure
 import com.camerasettings.app.logic.Presets
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -71,6 +77,10 @@ object MoreRoutes {
     const val CHECKLIST = "checklist"
     const val BASICS = "basics"
     const val ABOUT = "about"
+    const val SETTINGS = "settings"
+    const val METER = "meter"
+    const val DOF = "dof"
+    const val PLACE = "place"
     fun preset(id: String) = "preset:$id"
 }
 
@@ -88,6 +98,10 @@ fun MoreScreen(state: AppState, route: String?, onRoute: (String?) -> Unit, onGe
         route == MoreRoutes.CHECKLIST -> ChecklistScreen(state, back)
         route == MoreRoutes.BASICS -> BasicsScreen(back)
         route == MoreRoutes.ABOUT -> AboutScreen(back)
+        route == MoreRoutes.SETTINGS -> SettingsScreen(state, back) { onRoute(MoreRoutes.GEAR) }
+        route == MoreRoutes.METER -> Column { BackBar("Light meter", back); MeterScreen(state) }
+        route == MoreRoutes.DOF -> DofScreen(state, back)
+        route == MoreRoutes.PLACE -> PlacePicker(state, back)
         else -> MoreHome(state, onRoute)
     }
 }
@@ -96,14 +110,107 @@ fun MoreScreen(state: AppState, route: String?, onRoute: (String?) -> Unit, onGe
 private fun MoreHome(state: AppState, onRoute: (String) -> Unit) {
     val done = Checklist.allIds.count { it in state.checked }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        item { ScreenTitle("More", "Your gear, files, editing and trip preparation.", eyebrow = "Camera Coach") }
-        item { Spacer(Modifier.height(8.dp)) }
-        item { NavRow(Icons.Filled.Backpack, "My gear", state.camera?.let { "${it.name} · ${state.lenses.size} lenses" } ?: "Choose your camera and lenses") { onRoute(MoreRoutes.GEAR) } }
-        item { NavRow(Icons.Filled.SdCard, "Files & storage", "RAW vs JPEG, ${state.camera?.rawFormat ?: "CR3"} files, how many cards to bring") { onRoute(MoreRoutes.FILES) } }
-        item { NavRow(Icons.Filled.AutoFixHigh, "Editing & presets", "Software, workflow and 7 warm Lightroom looks") { onRoute(MoreRoutes.EDITING) } }
+        item { ScreenTitle("More", "Tools, your camera, editing and settings.", eyebrow = "Camera Coach") }
+        item { SectionLabel("Tools") }
+        item { NavRow(Icons.Filled.Exposure, "Light meter", "Use your phone to measure the light; ND filter calculator") { onRoute(MoreRoutes.METER) } }
+        item { NavRow(Icons.Filled.CenterFocusStrong, "Sharpness zone (depth of field)", "How much will be sharp at your settings?") { onRoute(MoreRoutes.DOF) } }
         item { NavRow(Icons.Filled.Checklist, "Trip checklist", "$done of ${Checklist.allIds.size} done") { onRoute(MoreRoutes.CHECKLIST) } }
-        item { NavRow(Icons.Filled.MenuBook, "Camera basics", "Av, Tv, M, ISO, histogram… in one minute") { onRoute(MoreRoutes.BASICS) } }
-        item { NavRow(Icons.Filled.Info, "About", "Version ${BuildConfig.VERSION_NAME}") { onRoute(MoreRoutes.ABOUT) } }
+        item { SectionLabel("After the photo") }
+        item { NavRow(Icons.Filled.SdCard, "Files & storage", "RAW vs JPEG, .${state.camera?.rawFormat ?: "RAW"} files, memory cards, backups") { onRoute(MoreRoutes.FILES) } }
+        item { NavRow(Icons.Filled.AutoFixHigh, "Editing & presets", "Software, workflow and 7 Lightroom looks") { onRoute(MoreRoutes.EDITING) } }
+        item { SectionLabel("You") }
+        item { NavRow(Icons.Filled.Backpack, "My camera & lenses", state.camera?.let { "${it.brand.label} ${it.name} · ${state.lenses.size} lenses" } ?: "Choose your camera") { onRoute(MoreRoutes.GEAR) } }
+        item { NavRow(Icons.Filled.Settings, "Settings", "Simple mode, bigger text, experience level") { onRoute(MoreRoutes.SETTINGS) } }
+        item { NavRow(Icons.Filled.Info, "About & photo credits", "Version ${BuildConfig.VERSION_NAME}") { onRoute(MoreRoutes.ABOUT) } }
+    }
+}
+
+@Composable
+private fun SettingsScreen(state: AppState, onBack: () -> Unit, onOpenGear: () -> Unit) {
+    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        item { BackBar("Settings", onBack) }
+        item {
+            SectionCard("Simple mode", Modifier.padding(horizontal = 16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Show only the most important settings, hide the advanced ones.", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Switch(state.simple, { state.changeSimple(it) })
+                }
+            }
+        }
+        item {
+            SectionCard("Text size", Modifier.padding(horizontal = 16.dp)) {
+                Text("Make all text in the app bigger (on top of your phone's own setting).", style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(1f to "Normal", 1.15f to "Large", 1.3f to "Extra large").forEach { (v, l) ->
+                        FilterChip(selected = kotlin.math.abs(state.textScale - v) < 0.01f, onClick = { state.changeTextScale(v) }, label = { Text(l) })
+                    }
+                }
+            }
+        }
+        item {
+            SectionCard("How much should the app explain?", Modifier.padding(horizontal = 16.dp)) {
+                Level.entries.forEach { l ->
+                    Row(Modifier.fillMaxWidth().clickable { state.selectLevel(l) }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.material3.RadioButton(state.level == l, { state.selectLevel(l) })
+                        Column {
+                            Text(l.label, style = MaterialTheme.typography.bodyLarge)
+                            Text(l.blurb, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        }
+        item {
+            SectionCard("Camera", Modifier.padding(horizontal = 16.dp)) {
+                Text(state.camera?.let { "${it.brand.label} ${it.name}" } ?: "No camera chosen", style = MaterialTheme.typography.bodyLarge)
+                Spacer(Modifier.height(8.dp))
+                FilledTonalButton(onClick = onOpenGear) { Text("Change camera or lenses") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DofScreen(state: AppState, onBack: () -> Unit) {
+    val body = state.camera
+    val crop = body?.sensor?.crop ?: 1.0
+    val lens = state.lenses.firstOrNull()
+    var focal by rememberSaveable { mutableStateOf((lens?.minFocal ?: 24).toFloat()) }
+    var fIdx by rememberSaveable { mutableStateOf(Exposure.apertureStops.indexOf(8.0).toFloat()) }
+    var dist by rememberSaveable { mutableStateOf(3f) }
+    val f = Exposure.apertureStops[fIdx.roundToInt()]
+    val distance = listOf(0.5, 1.0, 1.5, 2.0, 3.0, 5.0, 10.0, 20.0, 50.0)[dist.roundToInt()]
+    val r = com.camerasettings.app.logic.Dof.compute(focal.toDouble(), f, distance, crop)
+    fun m(x: Double) = if (x.isInfinite()) "∞ (infinity)" else if (x >= 10) "${x.roundToInt()} m" else String.format(Locale.US, "%.1f m", x)
+    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        item { BackBar("Sharpness zone", onBack) }
+        item {
+            Column(Modifier.padding(horizontal = 20.dp)) {
+                ScreenTitle("What will be sharp?", "When you focus at a distance, a zone in front and behind is also sharp. Small f-numbers make it thin (blurry background); big ones make it deep.")
+            }
+        }
+        item {
+            SectionCard(null, Modifier.padding(horizontal = 16.dp)) {
+                Text("Zoom: ${focal.roundToInt()} mm", style = MaterialTheme.typography.labelLarge)
+                Slider(focal, { focal = it }, valueRange = 8f..400f)
+                Text("Aperture: ${Exposure.formatAperture(f)}", style = MaterialTheme.typography.labelLarge)
+                Slider(fIdx, { fIdx = it }, valueRange = 0f..(Exposure.apertureStops.size - 1f), steps = Exposure.apertureStops.size - 2)
+                Text("Focus distance: ${m(distance)}", style = MaterialTheme.typography.labelLarge)
+                Slider(dist, { dist = it }, valueRange = 0f..8f, steps = 7)
+            }
+        }
+        item {
+            SectionCard("Sharp from … to …", Modifier.padding(horizontal = 16.dp), container = MaterialTheme.colorScheme.primaryContainer) {
+                Text("${m(r.near)}  →  ${m(r.far)}", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Landscape trick: focus at ${m(r.hyperfocal)} (the 'hyperfocal distance') and everything from ${m(r.hyperfocal / 2)} to the horizon is sharp.",
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                if (body != null) Text("Calculated for your ${body.name} (${body.sensor.label}).", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            }
+        }
     }
 }
 
@@ -172,13 +279,13 @@ private fun FilesScreen(state: AppState, onBack: () -> Unit) {
 
 @Composable
 fun AfterTripCard(modifier: Modifier = Modifier) {
-    SectionCard("After the trip: editing with Claude", modifier, container = MaterialTheme.colorScheme.secondaryContainer, icon = Icons.Filled.SmartToy) {
+    SectionCard("Editing with Claude", modifier, container = MaterialTheme.colorScheme.secondaryContainer, icon = Icons.Filled.SmartToy) {
         val c = MaterialTheme.colorScheme.onSecondaryContainer
-        Text("When you're home, I can help give your photos warmth and feel. To make that easy:", style = MaterialTheme.typography.bodyMedium, color = c)
+        Text("Claude can help give your photos warmth and feel. To make that easy:", style = MaterialTheme.typography.bodyMedium, color = c)
         Spacer(Modifier.height(10.dp))
         NumberedSteps(
             listOf(
-                "Keep the original RAW files (.CR3 / .CR2) untouched. Don't convert or delete them.",
+                "Keep the original RAW files untouched. Don't convert or delete them.",
                 "Pick your favourites first (for example 20–50 photos). Star them in Lightroom or copy them to one folder.",
                 "Start a new Claude Code session and share that folder: connect your computer, or upload the files.",
                 "Tell me the feel you want (\"warm Atacama gold\", \"soft and moody\") or point to a look in this app.",
@@ -197,7 +304,7 @@ private fun EditingScreen(onBack: () -> Unit, onOpenPreset: (String) -> Unit) {
         item { BackBar("Editing & presets", onBack) }
         item {
             Column(Modifier.padding(horizontal = 20.dp)) {
-                ScreenTitle("Warmth & feel", "RAW files are meant to be finished on a computer. These recipes turn them into the warm, rich look of the Shot guide.")
+                ScreenTitle("Warmth & feel", "RAW files are meant to be finished on a computer. These recipes give them a warm, rich look.")
             }
         }
         item {
@@ -225,7 +332,7 @@ private fun EditingScreen(onBack: () -> Unit, onOpenPreset: (String) -> Unit) {
         }
         Presets.all.forEach { p ->
             item(key = p.id) {
-                val example = Shots.all.firstOrNull { it.presetId == p.id }
+                val example = Photos.byId(presetPhoto[p.id])
                 Row(
                     Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(CardShape).clickable { onOpenPreset(p.id) }
                         .background(MaterialTheme.colorScheme.surfaceContainerLow).padding(10.dp),
@@ -233,7 +340,7 @@ private fun EditingScreen(onBack: () -> Unit, onOpenPreset: (String) -> Unit) {
                 ) {
                     if (example != null) {
                         Image(
-                            painterResource(Art[example.id]!!.thumb), null,
+                            painterResource(example.res), null,
                             Modifier.size(width = 96.dp, height = 64.dp).clip(RoundedCornerShape(12.dp)),
                             contentScale = ContentScale.Crop,
                         )
@@ -276,19 +383,13 @@ private fun SoftwareCard(modifier: Modifier) {
 @Composable
 private fun PresetScreen(p: EditPreset, onBack: () -> Unit) {
     val ctx = LocalContext.current
-    val examples = Shots.all.filter { it.presetId == p.id }
+    val example = Photos.byId(presetPhoto[p.id])
     LazyColumn(contentPadding = PaddingValues(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item { BackBar("Look", onBack) }
-        examples.firstOrNull()?.let { ex ->
-            item {
-                Column(Modifier.padding(horizontal = 16.dp)) {
-                    BeforeAfter(Art[ex.id]!!.before, Art[ex.id]!!.after)
-                }
-            }
-        }
+        example?.let { ex -> item { PhotoCard(ex, Modifier.padding(horizontal = 16.dp), ratio = 1.5f) } }
         item {
             Column(Modifier.padding(horizontal = 20.dp)) {
-                Text("Chile · ${p.name}", style = MaterialTheme.typography.headlineSmall)
+                Text(p.name, style = MaterialTheme.typography.headlineSmall)
                 Spacer(Modifier.height(4.dp))
                 Text(p.tagline, style = MaterialTheme.typography.bodyLarge)
                 Spacer(Modifier.height(4.dp))
@@ -404,12 +505,12 @@ private fun AboutScreen(onBack: () -> Unit) {
         item { BackBar("About", onBack) }
         item {
             Box(Modifier.padding(horizontal = 16.dp).fillMaxWidth().aspectRatio(2f).clip(CardShape)) {
-                Image(painterResource(com.camerasettings.app.R.drawable.ex_osorno_after), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                Image(painterResource(com.camerasettings.app.R.drawable.photo_landscape_1), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             }
         }
         item {
             Column(Modifier.padding(horizontal = 20.dp)) {
-                ScreenTitle("Camera Coach · Chile", "Version ${BuildConfig.VERSION_NAME}")
+                ScreenTitle("Camera Coach", "Version ${BuildConfig.VERSION_NAME}")
             }
         }
         item {
@@ -419,12 +520,33 @@ private fun AboutScreen(onBack: () -> Unit) {
                         "Works completely offline: settings, sun, moon and star times are all calculated on the phone.",
                         "Sun and moon positions use standard low-precision astronomical formulas (accurate to a minute or two).",
                         "Settings are sensible starting points. Always check the result on the screen and histogram, and adjust.",
-                        "All illustrations were painted by code for this app. They are not photographs.",
+                        "Example photos: Wikimedia Commons Featured and Quality pictures, used under their free licenses (credits below).",
+                        "City data: GeoNames (geonames.org), CC BY 4.0.",
                         "Typeface: Inter by Rasmus Andersson, SIL Open Font License 1.1.",
                         "Not affiliated with Canon or Adobe. Canon, EOS, PowerShot, Lightroom and Photoshop are trademarks of their owners.",
                     ),
                 )
             }
         }
+        item { SectionLabel("Photo credits", Modifier.padding(horizontal = 20.dp)) }
+        Photos.all.forEach { p ->
+            item(key = "credit_" + p.id) {
+                Column(Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
+                    Text(p.title, style = MaterialTheme.typography.bodyMedium)
+                    Text("${p.author} · ${p.license} · ${p.rating}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
     }
 }
+
+/** Example photo for each editing look. */
+private val presetPhoto = mapOf(
+    "golden_warm" to "golden_1",
+    "desert_night" to "astro_1",
+    "andes_clear" to "landscape_2",
+    "city_blue" to "city_1",
+    "puerto_color" to "street_2",
+    "lakes_volcanoes" to "water_1",
+    "moody_south" to "forest_1",
+)

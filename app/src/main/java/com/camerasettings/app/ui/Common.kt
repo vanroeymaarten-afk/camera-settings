@@ -151,13 +151,19 @@ private fun appTypography(): Typography {
     )
 }
 
+/** [textScale] lets parents make all text bigger, on top of the phone's own font size. */
 @Composable
-fun AppTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = if (isSystemInDarkTheme()) Dark else Light,
-        typography = remember { appTypography() },
-        content = content,
-    )
+fun AppTheme(textScale: Float = 1f, content: @Composable () -> Unit) {
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density.density, density.fontScale * textScale),
+    ) {
+        MaterialTheme(
+            colorScheme = if (isSystemInDarkTheme()) Dark else Light,
+            typography = remember { appTypography() },
+            content = content,
+        )
+    }
 }
 
 // =========================================================================== building blocks
@@ -366,5 +372,48 @@ fun BeforeAfter(@DrawableRes before: Int, @DrawableRes after: Int, modifier: Mod
             modifier = Modifier.align(Alignment.TopEnd).padding(10.dp).clip(RoundedCornerShape(50))
                 .background(Color.Black.copy(alpha = 0.45f)).padding(horizontal = 8.dp, vertical = 3.dp),
         )
+    }
+}
+
+
+/** A rated example photo with its credit line. */
+@Composable
+fun PhotoCard(
+    photo: com.camerasettings.app.data.Photo,
+    modifier: Modifier = Modifier,
+    ratio: Float? = null,
+    showCredit: Boolean = true,
+    onClick: (() -> Unit)? = null,
+) {
+    Column(modifier) {
+        Box(
+            Modifier.fillMaxWidth()
+                .aspectRatio(ratio ?: (photo.width.toFloat() / photo.height).coerceIn(0.6f, 2.2f))
+                .clip(CardShape)
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        ) {
+            Image(painterResource(photo.res), photo.title, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        }
+        if (showCredit) {
+            Text(
+                "📷 ${photo.author} · ${photo.license} · Wikimedia Commons",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                modifier = Modifier.padding(top = 4.dp, start = 4.dp),
+            )
+        }
+    }
+}
+
+/** Big, friendly value tile (mode / aperture / shutter / ISO). */
+@Composable
+fun ValueTile(label: String, value: String, modifier: Modifier = Modifier, container: Color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+    Column(
+        modifier.clip(RoundedCornerShape(16.dp)).background(container).padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(2.dp))
+        Text(value, style = MaterialTheme.typography.titleMedium, maxLines = 2)
     }
 }

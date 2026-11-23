@@ -10,10 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.test.core.app.ApplicationProvider
@@ -21,6 +18,8 @@ import com.camerasettings.app.App
 import com.camerasettings.app.R
 import com.camerasettings.app.Tab
 import com.camerasettings.app.data.AppState
+import com.camerasettings.app.data.Level
+import com.camerasettings.app.data.Place
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -46,41 +45,39 @@ class ScreenshotTest {
         state = AppState(ApplicationProvider.getApplicationContext())
     }
 
-    private fun withGear() {
-        state.selectCamera("r50")
-        if ("rfs18-45" !in state.lensIds) state.toggleLens("rfs18-45")
-        if ("rfs55-210" !in state.lensIds) state.toggleLens("rfs55-210")
-        state.selectPlace("sanpedro")
+    private fun withGear(brand: String = "r50", lenses: List<String> = listOf("rfs18-45", "rfs55-210")) {
+        state.selectCamera(brand)
+        lenses.forEach { if (it !in state.lensIds) state.toggleLens(it) }
+        state.selectLevel(Level.NEW)
+        state.selectPlace(Place("Brussels", "Belgium", 50.8505, 4.3488, "Europe/Brussels", 1019022))
+        state.finishOnboarding()
     }
 
-    private fun show(name: String, tab: Tab = Tab.SHOOT, shot: String? = null, more: String? = null, scene: String? = null) {
-        compose.setContent { AppTheme { App(state, tab, shot, more, scene) } }
+    private fun show(
+        name: String, tab: Tab = Tab.HOME, scene: String? = null, learn: String? = null,
+        photo: String? = null, more: String? = null, guide: Boolean = false, scale: Float = 1f,
+    ) {
+        compose.setContent { AppTheme(scale) { App(state, tab, scene, learn, photo, more, guide) } }
         compose.waitForIdle()
         compose.onRoot().captureRoboImage("screenshots/$name.png")
     }
 
-    @Test fun a_welcome() = show("01_welcome")
-    @Test fun b_shoot() { withGear(); show("02_shoot") }
-    @Test fun c_sceneAstro() { withGear(); show("03_scene_astro", scene = "astro") }
-    @Test fun d_guide() { withGear(); show("04_shot_guide", Tab.GUIDE) }
-    @Test fun e_shotOsorno() { withGear(); show("05_shot_osorno", Tab.GUIDE, shot = "osorno") }
-    @Test fun f_sky() { withGear(); show("06_sun_and_stars", Tab.SKY) }
-    @Test fun f2_starCalendar() {
-        withGear()
-        compose.setContent { AppTheme { App(state, Tab.SKY) } }
-        compose.waitUntil(20_000) { compose.onAllNodesWithText("Star calendar", substring = true).fetchSemanticsNodes().isNotEmpty() }
-        compose.waitUntil(60_000) { compose.onAllNodesWithText("Calculating…").fetchSemanticsNodes().isEmpty() }
-        compose.onNodeWithText("Longest shutter", substring = true).performScrollTo()
-        compose.waitForIdle()
-        compose.onRoot().captureRoboImage("screenshots/06b_star_calendar.png")
-    }
-    @Test fun g_meter() { withGear(); show("07_meter", Tab.METER) }
-    @Test fun h_more() { withGear(); show("08_more", Tab.MORE) }
-    @Test fun i_files() { withGear(); show("09_files", Tab.MORE, more = MoreRoutes.FILES) }
-    @Test fun j_editing() { withGear(); show("10_editing", Tab.MORE, more = MoreRoutes.EDITING) }
-    @Test fun k_preset() { withGear(); show("11_preset", Tab.MORE, more = MoreRoutes.preset("atacama_gold")) }
-    @Test fun l_checklist() { withGear(); show("12_checklist", Tab.MORE, more = MoreRoutes.CHECKLIST) }
-    @Test fun m_gear() { withGear(); show("13_gear", Tab.MORE, more = MoreRoutes.GEAR) }
+    @Test fun a_welcome() = show("01_onboarding_welcome")
+    @Test fun b_home() { withGear(); show("02_home") }
+    @Test fun c_scene() { withGear(); show("03_scene_landscape", scene = "landscape") }
+    @Test fun d_guide() { withGear(); show("04_step_by_step_guide", scene = "landscape", guide = true) }
+    @Test fun e2_learnTab() { withGear(); show("05_learn", Tab.LEARN) }
+    @Test fun f_lesson() { withGear(); show("06_lesson_aperture", Tab.LEARN, learn = "lesson:aperture") }
+    @Test fun g_playground() { withGear(); show("07_exposure_playground", Tab.LEARN, learn = "playground") }
+    @Test fun h_problem() { withGear(); show("08_problem_blurry", Tab.LEARN, learn = "problem:blurry") }
+    @Test fun i_gallery() { withGear(); show("09_gallery", Tab.GALLERY) }
+    @Test fun j_photo() { withGear(); show("10_photo_detail", Tab.GALLERY, photo = "water_2") }
+    @Test fun k_plan() { withGear(); show("11_plan", Tab.PLAN) }
+    @Test fun l_more() { withGear(); show("12_more", Tab.MORE) }
+    @Test fun m_settings() { withGear(); show("13_settings", Tab.MORE, more = MoreRoutes.SETTINGS) }
+    @Test fun n_nikon() { withGear("z50", listOf("nzdx16-50")); show("14_scene_nikon_wildlife", scene = "wildlife") }
+    @Test fun o_bigText() { withGear(); show("15_home_large_text", scale = 1.3f) }
+    @Test fun p_place() { withGear(); show("16_place_picker", Tab.MORE, more = MoreRoutes.PLACE) }
 
     @Test
     fun z_icon() {

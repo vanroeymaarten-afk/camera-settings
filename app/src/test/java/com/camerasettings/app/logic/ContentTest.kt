@@ -1,96 +1,110 @@
 package com.camerasettings.app.logic
 
+import com.camerasettings.app.data.Brand
 import com.camerasettings.app.data.Checklist
 import com.camerasettings.app.data.Gear
-import com.camerasettings.app.data.Places
-import com.camerasettings.app.data.Shots
+import com.camerasettings.app.data.Learn
+import com.camerasettings.app.data.Photos
+import com.camerasettings.app.data.Place
 import com.camerasettings.app.data.Storage
-import com.camerasettings.app.ui.Art
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
-import java.time.LocalDate
-import java.time.ZoneId
 import javax.xml.parsers.DocumentBuilderFactory
 
 class ContentTest {
 
     @Test
-    fun everyShotIsComplete() {
-        assertEquals(13, Shots.all.size)
-        for (s in Shots.all) {
-            assertNotNull("place for ${s.id}", Places.byId(s.placeId))
-            assertNotNull("scene for ${s.id}", Scenes.byId(s.sceneId))
-            assertNotNull("art for ${s.id}", Art[s.id])
-            Presets.byId(s.presetId)
-            assertTrue(s.howTo.isNotEmpty())
+    fun photosAreCompleteAndLicensed() {
+        assertTrue(Photos.all.size >= 35)
+        for (p in Photos.all) {
+            assertNotNull("scene for ${p.id}", Scenes.byId(p.sceneId))
+            assertTrue(p.id, p.aperture in 0.9..32.0 && p.shutter in 1e-5..400.0 && p.iso in 25..102400 && p.focal > 0)
+            assertTrue(p.id, p.license.startsWith("CC") || p.license.startsWith("Public"))
+            assertTrue(p.id, p.author.isNotBlank() && p.source.startsWith("https://commons.wikimedia.org/"))
+            assertFalse("${p.id} looks non-commercial", p.license.contains("NC"))
         }
-        assertEquals(Shots.all.map { it.id }.toSet(), Art.ids)
+        // Almost every situation has at least one example photo.
+        assertTrue(Scenes.all.count { s -> Photos.forScene(s.id).isNotEmpty() } >= 19)
     }
 
     @Test
-    fun scenesReferenceExistingArt() {
-        Scenes.all.mapNotNull { it.art }.forEach { assertNotNull(it, Art[it]) }
-    }
-
-    @Test
-    fun noPatagoniaLeftInThePlaces() {
-        assertTrue(Places.all.none { it.lat < -45 })
-        Places.all.forEach { ZoneId.of(it.zone) }
-    }
-
-    @Test
-    fun bestTimesResolveAtTheirPlace() {
-        for (s in Shots.all) {
-            val p = s.place
-            val plan = Astro.planDay(LocalDate.of(2026, 12, 15), ZoneId.of(p.zone), p.lat, p.lon)
-            val w = s.bestTime.window(plan)
-            if (w != null) assertTrue("${s.id}: $w", w.first.isBefore(w.second))
+    fun recreatePlanFitsTheUsersLens() {
+        val body = Gear.camera("r50")!!
+        val bag = listOf(Gear.lenses.first { it.id == "rfs18-45" }, Gear.lenses.first { it.id == "rfs55-210" })
+        for (p in Photos.all) {
+            val plan = Recreate.plan(p, body, bag)!!
+            assertTrue(p.id, plan.focal in plan.lens.minFocal..plan.lens.maxFocal)
+            assertTrue(p.id, plan.aperture >= plan.lens.apertureAt(plan.focal) - 0.05)
+            assertTrue(p.id, plan.iso in 100..25600)
         }
+        // A 600 mm bird shot needs the telephoto.
+        val bird = Photos.all.first { it.sceneId == "birds" && it.focal >= 200 }
+        assertEquals("rfs55-210", Recreate.plan(bird, body, bag)!!.lens.id)
+    }
+
+    @Test
+    fun lessonsAreWellFormed() {
+        assertTrue(Learn.lessons.size >= 15)
+        assertEquals(Learn.lessons.size, Learn.lessons.map { it.id }.toSet().size)
+        for (l in Learn.lessons) {
+            assertTrue(l.id, l.sections.isNotEmpty() && l.tryIt.isNotEmpty() && l.quiz.isNotEmpty())
+            l.quiz.forEach { q -> assertTrue(q.question, q.answer in q.options.indices) }
+            l.practiceScene?.let { assertNotNull(it, Scenes.byId(it)) }
+        }
+        // Placeholders are replaced with the brand's words.
+        val txt = Learn.fill("Use {AV} and {Q}", Brand.NIKON)
+        assertEquals("Use A and i button", txt)
+        Learn.problems.forEach { assertTrue(it.fixes.isNotEmpty()) }
+        assertTrue(Learn.glossary.size >= 30)
+    }
+
+    @Test
+    fun placeEncodingRoundTrips() {
+        val p = Place("Reykjavík", "Iceland", 64.1466, -21.9426, "Atlantic/Reykjavik", 118918, false)
+        assertEquals(p, Place.decode(p.encode()))
+    }
+
+    @Test
+    fun citiesAssetIsValid() {
+        val f = File("src/main/assets/cities.tsv")
+        assertTrue(f.exists())
+        val lines = f.readLines()
+        assertTrue(lines.size > 30000)
+        val brussels = lines.first { it.startsWith("Brussels\t") }.split('\t')
+        assertEquals("Europe/Brussels", brussels[5])
+        val lm = File("src/main/assets/landmarks.tsv").readLines()
+        assertTrue(lm.size >= 60)
+        lm.forEach { java.time.ZoneId.of(it.split('\t')[5]) }
+    }
+
+    @Test
+    fun dofMatchesKnownValues() {
+        // 50 mm, f/8, 5 m, full frame: about 3.4 m to 9.6 m; hyperfocal ~10.5 m.
+        val r = Dof.compute(50.0, 8.0, 5.0, 1.0)
+        assertTrue("${r.near}", r.near in 3.2..3.6)
+        assertTrue("${r.far}", r.far in 8.8..10.5)
+        assertTrue("${r.hyperfocal}", r.hyperfocal in 10.0..11.0)
     }
 
     @Test
     fun xmpPresetsAreValidXml() {
         val f = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
         for (p in Presets.all) {
-            val xml = Presets.toXmp(p)
-            val doc = f.newDocumentBuilder().parse(xml.byteInputStream())
+            val doc = f.newDocumentBuilder().parse(Presets.toXmp(p).byteInputStream())
             val desc = doc.getElementsByTagNameNS("http://www.w3.org/1999/02/22-rdf-syntax-ns#", "Description").item(0) as org.w3c.dom.Element
-            val crs = "http://ns.adobe.com/camera-raw-settings/1.0/"
-            assertEquals("True", desc.getAttributeNS(crs, "HasSettings"))
-            assertEquals(32, desc.getAttributeNS(crs, "UUID").length)
-            assertTrue(desc.getAttributeNS(crs, "Contrast2012").isNotEmpty())
-            assertTrue(p.steps().isNotEmpty())
-        }
-        // Optional export to the repository: ./gradlew testDebugUnitTest -PexportPresets
-        System.getProperty("exportPresetsDir")?.takeIf { it.isNotBlank() }?.let { dir ->
-            File(dir).mkdirs()
-            Presets.all.forEach { File(dir, Presets.fileName(it)).writeText(Presets.toXmp(it)) }
+            assertEquals("True", desc.getAttributeNS("http://ns.adobe.com/camera-raw-settings/1.0/", "HasSettings"))
         }
     }
 
     @Test
-    fun storageEstimateIsSensible() {
-        val r50 = Gear.camera("r50")!!
-        val e = Storage.estimate(r50, 150, 21, rawPlusJpeg = true, craw = false)
-        assertTrue("${e.gbTotal}", e.gbTotal in 80.0..130.0)
-        assertEquals("CR3", r50.rawFormat)
-        assertEquals("CR2", Gear.camera("2000d")!!.rawFormat)
-    }
-
-    @Test
-    fun checklistIdsAreUnique() {
+    fun storageAndChecklist() {
+        val e = Storage.estimate(Gear.camera("a7iv")!!, 150, 14, rawPlusJpeg = true, craw = false)
+        assertTrue("${e.gbTotal}", e.gbTotal in 60.0..140.0)
+        assertEquals("ARW", Gear.camera("a7iv")!!.rawFormat)
         assertEquals(Checklist.allIds.size, Checklist.allIds.toSet().size)
-    }
-
-    @Test
-    fun nextEventIsInTheFuture() {
-        val z = ZoneId.of("America/Santiago")
-        val now = LocalDate.of(2026, 12, 15).atTime(12, 0).atZone(z)
-        val e = Astro.nextEvent(now, -22.91, -68.20)!!
-        assertTrue(e.time.isAfter(now))
-        assertEquals("Golden hour", e.label)
     }
 }

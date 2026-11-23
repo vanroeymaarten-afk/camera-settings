@@ -1,5 +1,6 @@
 package com.camerasettings.app.logic
 
+import com.camerasettings.app.data.Brand
 import com.camerasettings.app.data.CameraBody
 import com.camerasettings.app.data.Lens
 import com.camerasettings.app.logic.Exposure.formatAperture
@@ -14,44 +15,85 @@ enum class Support { TRIPOD, HANDHELD }
 
 enum class LensPref { WIDE, ASTRO, LONG, PORTRAIT, NORMAL }
 
+enum class Category(val title: String) {
+    NATURE("Landscapes & nature"),
+    NIGHT("Night & low light"),
+    MOTION("Animals & action"),
+    PEOPLE("People & places"),
+}
+
+enum class Mode { AV, TV, M }
+
+enum class Kind { FOCAL, APERTURE, SHUTTER, ISO, MIN_SHUTTER, EXP_COMP, WHITE_BALANCE, FOCUS, METERING, DRIVE, STABILIZER, QUALITY, FILTER, STYLE, FLASH, OTHER }
+
 data class Scene(
     val id: String,
     val emoji: String,
     val title: String,
-    val where: String,
+    val subtitle: String,
+    val category: Category,
     val lensPref: LensPref,
-    /** Illustration shown on the card (an example from the Shot guide), if any. */
-    val art: String? = null,
+    val keywords: String = "",
 )
 
-data class Setting(val name: String, val value: String, val why: String)
+/**
+ * One camera setting. [how] says, in plain words, how to set it on the user's camera;
+ * [advanced] settings are hidden in Simple mode.
+ */
+data class Setting(
+    val kind: Kind,
+    val name: String,
+    val value: String,
+    val why: String,
+    val how: String = "",
+    val advanced: Boolean = false,
+)
 
 data class Recommendation(
-    val mode: String,
+    val mode: Mode,
+    val modeLabel: String,
     val modeWhy: String,
+    val modeHow: String,
+    val aperture: String,
+    val shutter: String,
+    val iso: String,
     val settings: List<Setting>,
     val tips: List<String>,
+    val mistakes: List<String>,
     val warnings: List<String>,
 )
 
 object Scenes {
     val all = listOf(
-        Scene("landscape", "🏔️", "Landscapes in daylight", "Altiplano lagoons, Atacama desert, volcanoes", LensPref.WIDE, "altiplano"),
-        Scene("golden", "🌅", "Sunrise, sunset & golden hour", "Valle de la Luna, Osorno from Frutillar", LensPref.WIDE, "valle_luna"),
-        Scene("snow", "🧂", "Salt flats, snow & bright scenes", "Salar de Atacama, Laguna Cejar, Osorno's snow cap", LensPref.WIDE, "flamingos"),
-        Scene("wildlife", "🐧", "Wildlife", "Flamingos, vicuñas, Puñihuil penguins, sea lions", LensPref.LONG, "penguins"),
-        Scene("birds", "🦅", "Birds in flight", "Andean condors, flamingos taking off", LensPref.LONG, "condor"),
-        Scene("water", "💧", "Waterfalls & silky water", "Saltos del Petrohué, Lake District rivers", LensPref.WIDE, "petrohue"),
-        Scene("astro", "🌌", "Milky Way & stars", "Atacama: one of the darkest skies on Earth", LensPref.ASTRO, "milky_way"),
-        Scene("blue", "🌃", "Blue hour & night city", "Santiago skyline, Valparaíso, Puerto Varas", LensPref.WIDE, "santiago"),
-        Scene("street", "🎨", "Streets & colourful towns", "Valparaíso, Chiloé palafitos, markets", LensPref.NORMAL, "valparaiso"),
-        Scene("forest", "🌿", "Rainforest & moody weather", "Alerce Andino, Chiloé, rainy Lake District days", LensPref.WIDE, "forest"),
-        Scene("geysers", "♨️", "El Tatio geysers at dawn", "Steam, low light, −10 °C", LensPref.WIDE, "el_tatio"),
-        Scene("portrait", "🙂", "People & travel portraits", "Your travel companions, locals (ask first!)", LensPref.PORTRAIT, "palafitos"),
-        Scene("indoor", "⛪", "Indoors & low light", "Chiloé's wooden churches, museums, restaurants", LensPref.NORMAL),
+        Scene("landscape", "🏔️", "Landscapes", "Mountains, lakes and wide views", Category.NATURE, LensPref.WIDE, "mountain lake view hills nature scenery"),
+        Scene("golden", "🌅", "Sunrise & sunset", "Golden hour and colourful skies", Category.NATURE, LensPref.WIDE, "golden hour sky clouds dusk dawn"),
+        Scene("bright", "🏖️", "Snow, beach & desert", "Very bright scenes that come out grey", Category.NATURE, LensPref.WIDE, "snow ski beach sea sand desert salt white"),
+        Scene("water", "💧", "Waterfalls & rivers", "Silky or frozen water", Category.NATURE, LensPref.WIDE, "waterfall river stream sea waves long exposure"),
+        Scene("forest", "🌲", "Forest, fog & rain", "Soft light and moody days", Category.NATURE, LensPref.WIDE, "forest woods fog mist rain cloudy trees"),
+        Scene("macro", "🌸", "Flowers & close-ups", "Insects, flowers, small details", Category.NATURE, LensPref.LONG, "macro flower insect butterfly close detail garden"),
+        Scene("astro", "🌌", "Stars & Milky Way", "Dark skies away from towns", Category.NIGHT, LensPref.ASTRO, "stars milky way night sky astro"),
+        Scene("aurora", "🟢", "Northern lights", "Aurora in the far north or south", Category.NIGHT, LensPref.ASTRO, "aurora borealis northern lights australis"),
+        Scene("city", "🌃", "City at night", "Blue hour, skylines, lit buildings", Category.NIGHT, LensPref.WIDE, "city night skyline blue hour lights evening"),
+        Scene("trails", "🚗", "Light trails", "Streaks of car and boat lights", Category.NIGHT, LensPref.WIDE, "light trails traffic cars long exposure"),
+        Scene("fireworks", "🎆", "Fireworks", "New Year, festivals, celebrations", Category.NIGHT, LensPref.NORMAL, "fireworks new year festival"),
+        Scene("indoor", "⛪", "Indoors & museums", "Churches, museums, restaurants", Category.NIGHT, LensPref.NORMAL, "indoor church museum restaurant room dark no flash"),
+        Scene("wildlife", "🦊", "Wildlife", "Animals in nature, safaris, zoos", Category.MOTION, LensPref.LONG, "animals wildlife zoo safari deer fox"),
+        Scene("birds", "🦅", "Birds in flight", "Fast-moving birds against the sky", Category.MOTION, LensPref.LONG, "birds flying flight seagull eagle"),
+        Scene("action", "🏄", "Sports & action", "Surfing, cycling, children playing", Category.MOTION, LensPref.LONG, "sport action running kids football surf bike moving"),
+        Scene("pets", "🐶", "Pets", "Dogs and cats at home or outside", Category.MOTION, LensPref.PORTRAIT, "pet dog cat"),
+        Scene("portrait", "🙂", "Portraits", "Family, friends, people you meet", Category.PEOPLE, LensPref.PORTRAIT, "portrait people family person face"),
+        Scene("street", "🛍️", "Travel & street", "Markets, streets, everyday life", Category.PEOPLE, LensPref.NORMAL, "travel street market town walk city day"),
+        Scene("architecture", "🏛️", "Buildings & architecture", "Churches, facades, monuments", Category.PEOPLE, LensPref.WIDE, "building architecture church castle monument"),
+        Scene("food", "🍝", "Food", "Restaurant plates and markets", Category.PEOPLE, LensPref.NORMAL, "food restaurant dinner plate meal"),
     )
 
     fun byId(id: String?) = all.firstOrNull { it.id == id }
+
+    fun search(q: String): List<Scene> {
+        val s = q.trim().lowercase(Locale.ROOT)
+        if (s.isEmpty()) return all
+        return all.filter { it.title.lowercase().contains(s) || it.subtitle.lowercase().contains(s) || it.keywords.contains(s) }
+    }
 }
 
 object Advisor {
@@ -69,16 +111,16 @@ object Advisor {
             LensPref.LONG -> bag.maxBy { it.maxFocal }
             LensPref.PORTRAIT -> {
                 val target = (70 / crop).roundToInt()
-                bag.minWith(compareBy<Lens> { it.apertureAt(focalFor(it, pref, crop)) + distancePenalty(it, target) })
+                bag.minWith(compareBy<Lens> { it.apertureAt(focalFor(it, pref, crop)) + penalty(it, target) })
             }
             LensPref.NORMAL -> {
                 val target = (35 / crop).roundToInt()
-                bag.minWith(compareBy<Lens> { distancePenalty(it, target) }.thenBy { if (it.isZoom) 0 else 1 })
+                bag.minWith(compareBy<Lens> { penalty(it, target) }.thenBy { if (it.isZoom) 0 else 1 })
             }
         }
     }
 
-    private fun distancePenalty(lens: Lens, target: Int): Double = when {
+    private fun penalty(lens: Lens, target: Int): Double = when {
         target < lens.minFocal -> (lens.minFocal - target) / 10.0
         target > lens.maxFocal -> (target - lens.maxFocal) / 10.0
         else -> 0.0
@@ -93,343 +135,436 @@ object Advisor {
 
     // ------------------------------------------------------------------ helpers
 
-    private fun stabilisationStops(body: CameraBody, lens: Lens): Double = when {
+    private fun stops(body: CameraBody, lens: Lens): Double = when {
         body.ibis && lens.hasIs -> 4.0
         body.ibis -> 3.0
         lens.hasIs -> 2.5
         else -> 0.0
     }
 
-    /** Slowest shutter speed that is reasonably safe handheld (people, not just walls). */
     fun handheldShutter(body: CameraBody, lens: Lens, focal: Int): Double {
         val eq = focal * body.sensor.crop
-        val t = (1.0 / eq) * 2.0.pow(stabilisationStops(body, lens))
-        return Exposure.shutterAtMost(min(t, 1 / 15.0))
+        return Exposure.shutterAtMost(min((1.0 / eq) * 2.0.pow(stops(body, lens)), 1 / 15.0))
     }
 
-    /** NPF rule: longest exposure (s) before stars visibly turn into lines. */
-    fun npfSeconds(body: CameraBody, lens: Lens, focal: Int): Double {
-        val n = lens.apertureAt(focal)
-        return (35 * n + 30 * body.pixelPitchUm) / focal
+    fun npfSeconds(body: CameraBody, lens: Lens, focal: Int): Double =
+        (35 * lens.apertureAt(focal) + 30 * body.pixelPitchUm) / focal
+
+    private fun clampF(target: Double, lens: Lens, focal: Int) = Exposure.nearestAperture(max(target, lens.apertureAt(focal)))
+
+    // ------------------------------------------------------------------ plain-language "how to" per brand
+
+    private class How(val brand: Brand, val body: CameraBody) {
+        val v = brand.vocab
+        val q = v.quickMenu
+        fun mode(m: Mode): String = when {
+            brand == Brand.FUJIFILM && m == Mode.AV -> "Set the shutter speed dial to A, then choose the aperture with the aperture ring (or the front dial if the lens has no ring)."
+            brand == Brand.FUJIFILM && m == Mode.TV -> "Set the aperture ring to A (or the lens switch to A), then pick the shutter speed on the dial on top."
+            brand == Brand.FUJIFILM -> "Pick the shutter speed on the dial on top and the aperture on the ring; set ISO yourself."
+            else -> "${v.dialMode} ${label(m)}."
+        }
+        fun label(m: Mode) = when (m) { Mode.AV -> v.av; Mode.TV -> v.tv; Mode.M -> "M" }
+        fun aperture(value: String, manual: Boolean) =
+            if (manual && brand == Brand.CANON) "Turn the rear wheel (or hold Av± and turn the main dial) until the screen shows $value."
+            else "Turn the ${v.apertureDial} until the screen shows $value."
+        fun shutter(value: String) = "Turn the ${v.shutterDial} until the screen shows $value."
+        fun iso(value: String) = if (brand == Brand.FUJIFILM) "Use the ISO dial (or press $q → ISO) and set $value." else "Press the ISO button (or the $q) and set $value."
+        fun quick(what: String, value: String) = "Press the $q, select $what and choose $value."
+        fun expComp(value: String) = "To set $value: ${v.expComp}."
+        fun stabilizer(on: Boolean) = "Set ${v.stabilizer} to ${if (on) "ON" else "OFF"} (a switch on the lens, or in the camera menu)."
+        val quality = "Menu → Image quality → RAW + JPEG (large/fine). Your camera saves RAW as .${body.rawFormat} files."
+        val timer = "Press the drive button (or the $q) and choose the 2-second self-timer."
+        val burst = "Press the drive button (or the $q) and choose high-speed continuous shooting."
+        val mf = "Switch the lens (or the camera's focus mode) to MF and turn the focus ring."
+        val minShutter = "Menu → ${v.minShutter}."
     }
-
-    /** The classic (looser) 500 rule, for comparison. */
-    fun rule500(body: CameraBody, focal: Int): Double = 500.0 / (focal * body.sensor.crop)
-
-    private fun clampAperture(target: Double, lens: Lens, focal: Int): Double =
-        Exposure.nearestAperture(max(target, lens.apertureAt(focal)))
-
-    private fun iso(n: Int) = "ISO $n"
 
     // ------------------------------------------------------------------ the advice
 
     fun recommend(scene: Scene, body: CameraBody, lens: Lens, focal: Int, support: Support): Recommendation {
+        val h = How(body.brand, body)
+        val v = body.brand.vocab
         val crop = body.sensor.crop
         val tripod = support == Support.TRIPOD
         val wideOpen = lens.apertureAt(focal)
         val hh = handheldShutter(body, lens, focal)
-        val autoIso = "Auto (max ${body.maxGoodIso})"
+        val autoIsoLabel = "Auto (max ${body.maxGoodIso})"
         val hasIs = lens.hasIs || body.ibis
-        val dslr = !body.mirrorless
         val eq = (focal * crop).roundToInt()
 
         val s = mutableListOf<Setting>()
         val tips = mutableListOf<String>()
+        val mistakes = mutableListOf<String>()
         val warn = mutableListOf<String>()
 
-        s += Setting(
-            "Focal length",
-            "$focal mm" + if (crop != 1.0) " (looks like $eq mm on full frame)" else "",
-            when (scene.lensPref) {
-                LensPref.WIDE -> "Zoom out fully to fit in the big scenery."
-                LensPref.ASTRO -> "Widest setting: more sky, and you can expose longer before stars streak."
-                LensPref.LONG -> "Zoom in fully: animals are shy, and you should keep your distance anyway."
-                LensPref.PORTRAIT -> "A short telephoto flatters faces and blurs the background."
-                LensPref.NORMAL -> "A natural, 'what you see' angle for streets and interiors."
-            },
-        )
+        var mode = Mode.AV
+        var ap = "Camera chooses"
+        var sh = "Camera chooses"
+        var iso = autoIsoLabel
+        var modeWhy = ""
 
-        fun stabiliser(onWhy: String = "Lets you shoot handheld at slower speeds without blur.") {
-            if (!hasIs) return
-            s += if (tripod) {
-                Setting("Image stabilizer (IS)", "OFF", "On a tripod the stabilizer can 'hunt' and add blur.")
-            } else {
-                Setting("Image stabilizer (IS)", "ON", onWhy)
+        fun focal() {
+            s += Setting(
+                Kind.FOCAL, "Zoom", "$focal mm" + if (crop != 1.0) " (looks like $eq mm on full frame)" else "",
+                when (scene.lensPref) {
+                    LensPref.WIDE -> "Zoom out to fit in the whole view."
+                    LensPref.ASTRO -> "Zoom out fully: more sky and longer exposures before stars blur."
+                    LensPref.LONG -> "Zoom in fully: it lets you stay further away."
+                    LensPref.PORTRAIT -> "A little zoomed in flatters faces and blurs the background."
+                    LensPref.NORMAL -> "A natural angle, close to what your eyes see."
+                },
+                if (lens.isZoom) "Turn the zoom ring on the lens until the mark points at about $focal." else "",
+            )
+        }
+        fun aperture(f: Double, why: String, manual: Boolean = false) {
+            ap = formatAperture(f)
+            s += Setting(Kind.APERTURE, "Aperture", ap, why, h.aperture(ap, manual))
+        }
+        fun wideOpenAperture(why: String, manual: Boolean = false) {
+            ap = formatAperture(wideOpen)
+            s += Setting(Kind.APERTURE, "Aperture", "$ap (smallest number your lens allows)", why, h.aperture(ap, manual))
+        }
+        fun shutter(t: String, why: String) {
+            sh = t
+            s += Setting(Kind.SHUTTER, "Shutter speed", t, why, h.shutter(t))
+        }
+        fun isoFixed(n: Int, why: String) {
+            iso = "ISO $n"
+            s += Setting(Kind.ISO, "ISO", iso, why, h.iso("ISO $n"))
+        }
+        fun isoAuto(why: String, minShutter: Double? = null) {
+            iso = autoIsoLabel
+            s += Setting(Kind.ISO, "ISO", "AUTO", why, h.iso("AUTO") + " Optional: limit Auto ISO to ${body.maxGoodIso} in the menu.")
+            if (minShutter != null) {
+                s += Setting(Kind.MIN_SHUTTER, "Auto ISO slowest shutter", formatShutter(minShutter), "Stops the camera from choosing a shutter speed that's too slow to hold steady.", h.minShutter, advanced = true)
             }
         }
+        fun expComp(value: String, why: String) {
+            s += Setting(Kind.EXP_COMP, "Exposure compensation (+/–)", value, why, h.expComp(value))
+        }
+        fun wb(value: String, why: String) {
+            s += Setting(Kind.WHITE_BALANCE, "White balance", value, why, h.quick("white balance (WB)", value))
+        }
+        fun af(single: Boolean, extra: String = "", why: String = "") {
+            val value = (if (single) v.afSingle else v.afContinuous) + if (extra.isNotEmpty()) ", $extra" else ""
+            s += Setting(Kind.FOCUS, "Focus", value, why.ifEmpty { if (single) "Locks focus once when you half-press the shutter button." else "Keeps refocusing while the subject moves." }, h.quick("the focus mode", if (single) v.afSingle else v.afContinuous))
+        }
+        fun manualFocus(why: String) {
+            s += Setting(Kind.FOCUS, "Focus", "Manual (MF)", why, h.mf)
+        }
+        fun metering() {
+            s += Setting(Kind.METERING, "Metering", v.metering, "The camera's all-round light measurement works well here.", h.quick("metering", v.metering), advanced = true)
+        }
+        fun timer() {
+            s += Setting(Kind.DRIVE, "Drive", "2-second self-timer", "Pressing the button shakes the camera; the timer lets it settle first.", h.timer)
+        }
+        fun burst(why: String = "Take a few frames in a row and keep the sharpest.") {
+            s += Setting(Kind.DRIVE, "Drive", "Continuous (burst)", why, h.burst)
+        }
+        fun stabilizer() {
+            if (!hasIs) return
+            s += if (tripod) Setting(Kind.STABILIZER, "Stabilizer (${v.stabilizer})", "OFF", "On a tripod the stabilizer can cause blur.", h.stabilizer(false))
+            else Setting(Kind.STABILIZER, "Stabilizer (${v.stabilizer})", "ON", "Helps you hold the camera steady.", h.stabilizer(true))
+        }
+        fun quality() {
+            s += Setting(Kind.QUALITY, "Image quality", "RAW + JPEG", "JPEG to share right away; RAW keeps extra detail for editing later.", h.quality, advanced = true)
+        }
+        fun style(value: String, why: String) {
+            s += Setting(Kind.STYLE, v.pictureStyle, value, why, h.quick(v.pictureStyle, value), advanced = true)
+        }
 
-        val quality = Setting(
-            "Image quality",
-            "RAW + JPEG",
-            "JPEG to share right away; RAW keeps extra detail in bright skies and shadows to fix later.",
-        )
-
-        val rec: Recommendation = when (scene.id) {
-
+        focal()
+        when (scene.id) {
             "landscape" -> {
-                val f = clampAperture(if (crop >= 2.0) 5.6 else if (crop > 1) 8.0 else 9.0, lens, focal)
-                s += Setting("Aperture", formatAperture(f), "Sharpest setting of most lenses, and everything from near to far is in focus.")
-                if (tripod) {
-                    s += Setting("ISO", iso(100), "Lowest ISO = cleanest image. The tripod takes care of slow shutter speeds.")
-                    s += Setting("Drive", "2-second self-timer", "Pressing the shutter shakes the camera; the timer lets it settle.")
-                } else {
-                    s += Setting("ISO", autoIso, "Lets the camera raise ISO only when needed.")
-                    s += Setting("Auto ISO min. shutter", formatShutter(min(hh, 1 / 125.0).let { Exposure.shutterAtMost(it) }),
-                        "Wind on the Altiplano shakes you and the camera. This keeps shots sharp.")
-                    s += Setting("Drive", "Single shot", "")
-                }
-                s += Setting("Focus", "One Shot AF, single point ⅓ into the scene", "Focusing a third into the scene keeps the foreground and mountains sharp.")
-                s += Setting("Metering", "Evaluative", "Canon's all-round metering is very good for landscapes.")
-                s += Setting("Exposure compensation", "0, or −⅓ with lots of bright sky", "Protects bright clouds from turning pure white.")
-                s += Setting("White balance", "Daylight ☀", "Keeps colours consistent from shot to shot (Auto sometimes greys out warm light).")
-                stabiliser()
-                s += quality
-                tips += "A circular polarising filter makes the Altiplano lagoons and Lake Llanquihue deep blue and cuts glare. Turn it while looking through the viewfinder."
-                tips += "Put something in the foreground (rocks, flowers, a person) to show scale."
-                tips += "Check the histogram: if the graph hits the right edge, dial in −⅓ or −⅔."
-                Recommendation("Av (Aperture priority)", "You set the aperture for depth of field; the camera picks the shutter speed.", s, tips, warn)
+                mode = Mode.AV; modeWhy = "You choose the aperture so everything is sharp; the camera picks the shutter speed."
+                aperture(clampF(if (crop >= 2.0) 5.6 else 8.0, lens, focal), "Most lenses are sharpest here, and both near and far are in focus.")
+                if (tripod) { isoFixed(100, "Lowest ISO = cleanest picture. The tripod handles slow shutter speeds."); timer() }
+                else isoAuto("The camera raises ISO only when the light drops.", Exposure.shutterAtMost(min(hh, 1 / 125.0)))
+                af(true, "single point", "Put the focus point about a third into the scene, then half-press.")
+                expComp("0 (−⅓ with a lot of bright sky)", "Keeps bright clouds from turning pure white.")
+                wb("Daylight ☀", "Keeps colours natural and consistent.")
+                metering(); stabilizer(); style(v.styleLandscape, "Punchier blues and greens in the JPEG."); quality()
+                tips += "Put something in the foreground (a rock, flowers, a person) to show how big the view is."
+                tips += "Keep the horizon straight: most cameras can show a level or grid on the screen."
+                tips += "A polarising filter makes skies deeper blue and removes reflections on water."
+                mistakes += "Everything blurry? You probably focused on nothing in particular. Aim the focus point at something a third into the scene."
+                mistakes += "Washed-out sky: dial in −⅓ or −⅔ exposure compensation."
             }
-
             "golden" -> {
-                val f = clampAperture(8.0, lens, focal)
-                s += Setting("Aperture", formatAperture(f), "Front-to-back sharpness. Go to f/11–f/16 if you want a 'sunstar' on the sun.")
-                s += Setting("ISO", if (tripod) iso(100) else autoIso, if (tripod) "Clean images; the tripod handles slow speeds." else "Light falls fast; Auto ISO keeps up.")
-                s += Setting("Exposure compensation", "−⅔ to −1", "Keeps the sky's colours rich instead of washed out. Shadows can be lifted later from RAW.")
-                s += Setting("White balance", "Daylight ☀ or Cloudy ☁", "Auto white balance 'corrects' the warm glow away. These keep it.")
-                s += Setting("Metering", "Evaluative", "")
-                s += Setting("Bracketing (AEB)", "±2 stops, 3 shots", "Captures the bright sky and dark ground separately so nothing is lost; merge later or pick the best.")
-                s += Setting("Drive", if (tripod) "2-second self-timer" else "High-speed continuous (for brackets)", "")
-                s += Setting("Focus", "One Shot AF on the main subject", "")
-                stabiliser()
-                s += quality
-                tips += "Open the 'Sun & Stars' tab for exact golden & blue hour times where you are."
-                tips += "Osorno volcano glows pink for 10–15 minutes after sunset, seen from Frutillar or Puerto Varas. Valle de la Luna is best from Mirador de Kari."
-                tips += "After sunset, keep shooting: the best colour in the clouds often comes 10–20 minutes later."
-                Recommendation("Av (Aperture priority)", "You fix the aperture; the camera follows the fast-changing light.", s, tips, warn)
+                mode = Mode.AV; modeWhy = "You fix the aperture; the camera keeps up with the fast-changing light."
+                aperture(clampF(8.0, lens, focal), "Front-to-back sharpness. f/11–f/16 turns the sun into a star.")
+                if (tripod) { isoFixed(100, "Clean images; the tripod handles slow speeds."); timer() } else isoAuto("The light fades fast; Auto ISO keeps up.", hh)
+                expComp("−⅔", "Keeps the sky's colours rich instead of washed out.")
+                wb("Cloudy ☁", "Auto white balance removes the warm glow; Cloudy keeps it.")
+                af(true); metering(); stabilizer()
+                s += Setting(Kind.OTHER, "Bracketing (AEB)", "3 shots: −2, 0, +2", "Saves the bright sky and the dark ground in separate frames to combine later.", "Menu → exposure bracketing (AEB / BKT) → ±2.", advanced = true)
+                quality()
+                tips += "Arrive 30 minutes early. The Plan tab shows the exact golden hour where you are."
+                tips += "Keep shooting after the sun has gone: the best colours often come 10–20 minutes later."
+                tips += "Turn around! The light on the landscape behind you can be even better."
+                mistakes += "Dark ground and bright sky? That's normal. Expose for the sky and lift shadows later, or use bracketing."
+                mistakes += "Don't look at the sun through the viewfinder when it's high: it can hurt your eyes."
             }
-
-            "snow" -> {
-                val f = clampAperture(if (crop > 1) 8.0 else 9.0, lens, focal)
-                s += Setting("Aperture", formatAperture(f), "Sharp from front to back.")
-                s += Setting("ISO", if (tripod) iso(100) else autoIso, "There's lots of light here, ISO will stay low.")
-                s += Setting("Exposure compensation", "+1 to +1⅔", "The camera thinks white = too bright and turns snow and salt grey. Adding exposure makes it white again.")
-                s += Setting("Metering", "Evaluative", "")
-                s += Setting("White balance", "Daylight ☀", "Auto WB can tint snow blue.")
-                s += Setting("Highlight alert ('blinkies')", "ON in playback menu", "Blinking areas are blown out; reduce compensation by ⅓ until they mostly stop.")
-                stabiliser()
-                s += quality
-                tips += "A polarising filter deepens the sky over salt flats, but skip it on ultra-wide angles: the sky turns patchy."
-                tips += "Fine salt and dust in Atacama: change lenses with the camera pointing down, out of the wind."
-                tips += "Flamingos at Laguna Chaxa? Switch to the Wildlife scene."
-                Recommendation("Av (Aperture priority)", "You set the aperture; exposure compensation fixes the 'grey snow' problem.", s, tips, warn)
+            "bright" -> {
+                mode = Mode.AV; modeWhy = "You fix the aperture; exposure compensation fixes the 'grey snow' problem."
+                aperture(clampF(if (crop >= 2) 5.6 else 8.0, lens, focal), "Sharp from front to back.")
+                isoFixed(100, "There's plenty of light, so use the cleanest ISO.")
+                expComp("+1 to +1⅔", "The camera thinks white is too bright and makes snow, sand and beaches grey. Adding exposure makes them white again.")
+                wb("Daylight ☀", "Auto white balance can make snow blue.")
+                af(true); metering(); stabilizer()
+                s += Setting(Kind.OTHER, "Highlight warning ('blinkies')", "ON", "Blinking areas are pure white with no detail: lower exposure compensation by ⅓ until they mostly stop.", "Menu → playback settings → highlight alert / highlight warning → ON.", advanced = true)
+                quality()
+                tips += "Sunglasses help you see the screen, and a lens hood stops glare."
+                tips += "Protect the camera from sand and salt spray: keep it in the bag when not shooting."
+                tips += "Cold drains batteries fast: keep a spare in an inside pocket."
+                mistakes += "Grey snow or sand: you forgot the + exposure compensation."
+                mistakes += "Changing lenses on a windy beach lets sand onto the sensor. Do it inside a bag."
             }
-
-            "wildlife" -> {
-                val t = Exposure.nearestShutter(max(1 / 1000.0, min(hh, 1.0 / (2 * eq))))
-                s += Setting("Shutter speed", "${formatShutter(t)} (moving) · 1/500 s (resting)", "Freezes walking guanacos and waddling penguins.")
-                s += Setting("Aperture", "Camera chooses (≈ ${formatAperture(wideOpen)})", "Wide open lets the most light in and blurs the background.")
-                s += Setting("ISO", autoIso, "Shutter speed matters more than a bit of noise.")
-                s += Setting(
-                    "Autofocus",
-                    if (body.animalAf) "Servo AF + subject detection: Animals, eye detection ON" else if (dslr) "AI Servo AF, Zone AF" else "Servo AF, Zone AF",
-                    "Servo keeps refocusing while the animal moves.",
-                )
-                s += Setting("Drive", "High-speed continuous", "Take bursts of 3–6 and keep the sharpest one.")
-                s += Setting("Metering", "Evaluative", "")
-                s += Setting("Exposure compensation", "0 (+⅔ if the animal is dark against bright sky)", "")
-                stabiliser("Lets you hold a long lens steady.")
-                s += quality
-                tips += "Get low to the animal's eye level; it makes photos far more intimate."
-                tips += "Puñihuil (Chiloé): Humboldt and Magellanic penguins from small boats, best in the morning. Flamingos at Laguna Chaxa, vicuñas on the road to the Altiplano lagoons, sea lions at Angelmó market in Puerto Montt."
-                tips += "Keep your distance and never chase animals. Let them come to you."
-                if (focal * crop < 150) warn += "Your longest lens is fairly short for wildlife. Get as close as is safe and crop later."
-                Recommendation("Tv (Shutter priority)", "You set a fast shutter speed to freeze motion; the camera handles the rest.", s, tips, warn)
-            }
-
-            "birds" -> {
-                s += Setting("Shutter speed", "1/2000 s", "Wings move fast. Condors glide, so 1/1250 s also works for them.")
-                s += Setting("Aperture", "Camera chooses (≈ ${formatAperture(wideOpen)})", "")
-                s += Setting("ISO", autoIso, "")
-                s += Setting(
-                    "Autofocus",
-                    if (body.animalAf) "Servo AF + subject: Animals (birds), whole-area tracking" else if (dslr) "AI Servo AF, Zone AF or Large Zone" else "Servo AF, Zone AF",
-                    "Finds the bird against the sky and keeps tracking it.",
-                )
-                s += Setting("Drive", "High-speed continuous", "")
-                s += Setting("Exposure compensation", "+⅔ to +1 against bright sky", "Otherwise birds become dark silhouettes.")
-                if (hasIs) s += Setting("Image stabilizer", "ON (Mode 2 for panning if your lens has it)", "")
-                s += quality
-                tips += "Andean condors ride the thermals mid-morning. Best near Santiago: Cajón del Maipo and the road to Farellones."
-                tips += "Start tracking the bird before you press the shutter, and keep following through."
-                Recommendation("Tv (Shutter priority)", "Fast shutter speed is everything for birds in flight.", s, tips, warn)
-            }
-
             "water" -> {
-                if (!tripod) warn += "Silky water needs a tripod (or rest the camera on a rock / your bag and use the self-timer)."
-                val f = clampAperture(11.0, lens, focal)
-                s += Setting("Aperture", formatAperture(f), "Small opening lets in less light, so the shutter can stay open longer.")
-                s += Setting("ISO", iso(100), "Lowest ISO, also to allow a slower shutter.")
-                s += Setting("Shutter speed", "0.5 – 2 s", "Long enough to blur water into silk. Try several.")
-                s += Setting("ND filter", "ND8 (3 stops) or ND64 (6 stops) in daylight", "Without one, daylight is too bright for long exposures. See the ND calculator in the Meter tab.")
-                s += Setting("Focus", "One Shot AF, then switch the lens to MF", "So focus doesn't change between shots.")
-                s += Setting("Drive", "2-second self-timer", "")
-                stabiliser()
-                s += quality
-                tips += "Overcast days or shade are perfect: less light, so you might not need an ND filter."
-                tips += "Want frozen splashes instead? Use 1/1000 s in Tv mode."
-                tips += "Saltos del Petrohué (1 h from Puerto Varas) is the classic: turquoise water over black lava with Osorno behind. Mind the spray on your lens."
-                Recommendation("M (Manual)", "You control everything so each shot in a series is the same.", s, tips, warn)
+                mode = Mode.M; modeWhy = "You control everything, so each photo in a series looks the same."
+                if (!tripod) warn += "Silky water needs a tripod, or put the camera on a rock or your bag and use the self-timer."
+                aperture(clampF(11.0, lens, focal), "A small opening lets less light in, so the shutter can stay open longer.", manual = true)
+                isoFixed(100, "Lowest ISO, also to allow a slower shutter.")
+                shutter("½ to 2 seconds", "Long enough to blur moving water into silk. Try several.")
+                s += Setting(Kind.FILTER, "ND filter", "ND8 (3 stops) or ND64 (6 stops) in daylight", "A 'sunglasses' filter. Without one, daylight is too bright for long exposures (see Tools → ND filter).", "Screw the filter onto the front of the lens after focusing.", advanced = true)
+                af(true, "then switch to MF", "Focus once, then switch to MF so focus stays put.")
+                timer(); stabilizer(); quality()
+                tips += "Overcast days and shade are perfect: less light means slower shutter speeds without a filter."
+                tips += "Want frozen splashes instead? Use 1/1000 s."
+                tips += "Wipe spray off the lens before every shot."
+                mistakes += "Completely white photo: too much light. Use a smaller aperture (f/16), ISO 100, or an ND filter."
+                mistakes += "Everything blurry, not just the water: the camera moved. Use a tripod and the self-timer."
             }
-
+            "forest" -> {
+                mode = Mode.AV; modeWhy = "You set the depth; the camera finds the (often slow) shutter speed."
+                aperture(clampF(8.0, lens, focal), "Depth through the trees.")
+                if (tripod) { isoFixed(100, "Forests are darker than they look; the tripod lets ISO stay low."); timer() }
+                else isoAuto("Under the trees the light drops fast.", hh)
+                expComp("−⅓ to −⅔", "Keeps bright gaps and light rays from blowing out, and keeps the moody feel.")
+                wb("Cloudy ☁", "Removes the cold blue-green look of shade and rain.")
+                af(true, "on a trunk or plant in front"); metering(); stabilizer(); quality()
+                tips += "Grey, drizzly days are a gift: soft light, rich greens, no harsh shadows."
+                tips += "Look for layers: a fern in front, a trunk in the middle, fog behind."
+                tips += "Rain? A plastic bag with a rubber band protects the camera."
+                mistakes += "Very dark photos: add +⅓ exposure compensation, the camera is fooled by dark greens."
+            }
+            "macro" -> {
+                mode = Mode.AV; modeWhy = "Aperture decides how much of a tiny subject is sharp."
+                aperture(clampF(8.0, lens, focal), "Close up, the sharp zone is paper-thin. f/8 gives a bit more of the subject in focus.")
+                isoAuto("Close-ups need fast shutter speeds against shake and wind.", Exposure.shutterAtMost(min(hh, 1 / 250.0)))
+                af(true, "single point on the eye or flower centre", "Move the focus point onto the most important part.")
+                burst("Tiny movements spoil focus; take several frames.")
+                stabilizer(); quality()
+                tips += "Zoom in fully and move as close as your lens can still focus (the minimum distance is printed on the lens)."
+                tips += "Early morning: insects are slow and there's no wind."
+                tips += "A plain background (sky, leaves far away) makes the subject pop."
+                mistakes += "Camera won't take the photo? You're closer than the lens can focus. Step back a little."
+            }
             "astro" -> {
+                mode = Mode.M; modeWhy = "In the dark the camera can't measure the light, so you set everything yourself."
                 val npf = npfSeconds(body, lens, focal)
                 val t = Exposure.shutterAtMost(min(npf, 30.0))
-                val loose = Exposure.shutterAtMost(min(npf * 1.5, 30.0))
                 val cap = if (body.maxGoodIso >= 3200) 6400 else 3200
-                val needed = 3200 * (wideOpen / 2.8).pow(2) * (15.0 / t)
-                val isoVal = Exposure.nearestIso(needed.coerceIn(1600.0, cap.toDouble()))
-                if (!tripod) warn += "Stars need a tripod. Without one, rest the camera on a wall or bag and use the 2-s timer."
-                s += Setting("Aperture", formatAperture(wideOpen) + " (wide open)", "Gather as much starlight as possible.")
-                s += Setting("Shutter speed", formatShutter(t),
-                    "NPF rule for your camera: up to ${String.format(Locale.US, "%.0f", npf)} s before stars blur. Up to ${formatShutter(loose)} is fine for phone-size viewing.")
-                s += Setting("ISO", iso(isoVal), "High enough to see the Milky Way. Noise can be reduced later; an underexposed photo can't be saved.")
-                s += Setting("Focus", "MF: magnify live view 10× on the brightest star", "Turn the ring until the star is the smallest dot. Then tape the ring!")
-                s += Setting("White balance", "3900–4200 K", "Gives a natural blue-black sky instead of orange.")
-                s += Setting("Drive", "2- or 10-second self-timer", "")
-                s += Setting("Long exposure noise reduction", "OFF", "It doubles the wait for every photo. Turn on only for your best composition.")
-                stabiliser()
-                s += quality
-                if (dslr) s += Setting("Viewfinder", "Use Live View (rear screen)", "You can't focus on stars through an optical viewfinder.")
-                tips += "Check the 'Sun & Stars' tab: it shows when it's really dark, when the moon is down and when the Milky Way centre is up."
-                tips += "In December the Milky Way centre is hidden behind the sun. Instead shoot the bright southern Milky Way (Carina Nebula, Southern Cross) and the Magellanic Clouds, which rise later in the night. The Sun & Stars tab shows when."
-                tips += "Atacama is the place for stars on your trip. The Puerto Montt region is often cloudy and has more light pollution."
-                tips += "Turn the screen brightness down and use a red headlamp to keep your night vision."
-                tips += "Atacama nights are close to 0 °C: bring warm clothes and a spare battery in an inside pocket."
-                if (wideOpen > 3.5) warn += "Your lens is fairly 'slow' (${formatAperture(wideOpen)}). It works, but expect noise. Take several shots of the same view to stack later."
-                Recommendation("M (Manual)", "In the dark the camera can't meter, so you set everything yourself.", s, tips, warn)
+                val isoN = Exposure.nearestIso((3200 * (wideOpen / 2.8).pow(2) * (15.0 / t)).coerceIn(1600.0, cap.toDouble()))
+                if (!tripod) warn += "Stars need a tripod, or rest the camera on a wall or bag and use the self-timer."
+                wideOpenAperture("Gather as much starlight as possible.", manual = true)
+                shutter(formatShutter(t), String.format(Locale.US, "The longest time before stars turn into streaks with your camera (about %.0f s).", npf))
+                isoFixed(isoN, "High enough to see the Milky Way. Noise can be cleaned up later; a black photo can't.")
+                manualFocus("Autofocus can't see stars. Magnify the screen 10× on the brightest star and turn the ring until it's the smallest dot.")
+                wb("3900–4200 K (Kelvin)", "Gives a natural blue-black sky instead of orange.")
+                timer(); stabilizer(); quality()
+                s += Setting(Kind.OTHER, "Long exposure noise reduction", "OFF", "It doubles the wait after every photo. Turn on only for your final shot.", "Menu → long exposure noise reduction → OFF.", advanced = true)
+                tips += "Get far away from town lights and pick a night without moon (the Plan tab has a star calendar)."
+                tips += "Give your eyes 20 minutes to adjust and use a red light."
+                tips += "Bring warm clothes and a spare battery: nights are cold even in summer."
+                mistakes += "Stars look like little lines: shorter shutter speed."
+                mistakes += "Everything blurry: focus wasn't on the stars. Use manual focus on a bright star."
+                if (wideOpen > 3.5) warn += "Your lens is fairly 'slow' (${formatAperture(wideOpen)}). It works, but expect noise."
             }
-
-            "blue" -> {
+            "aurora" -> {
+                mode = Mode.M; modeWhy = "The camera can't measure faint aurora light; you set it."
+                wideOpenAperture("Let in as much light as possible.", manual = true)
+                shutter("2–8 seconds (shorter when it's bright and moving fast)", "Short enough to keep the shapes of the lights sharp.")
+                isoFixed(if (wideOpen <= 2.8) 1600 else 3200, "Bright enough to record the aurora; adjust after a test shot.")
+                manualFocus("Focus on a bright star using the magnified live view, then don't touch the ring.")
+                wb("3500–4000 K", "Keeps the greens natural and the sky dark blue.")
+                timer(); stabilizer(); quality()
+                if (!tripod) warn += "Aurora needs a tripod or a steady surface."
+                tips += "Aurora is often visible from about 60° latitude north or south on clear, dark nights."
+                tips += "Put a landmark in the foreground: a cabin, mountain or lake reflection."
+                tips += "Batteries die fast in the cold. Keep spares warm in your pocket."
+                mistakes += "Green blur without shapes: shutter too long. Try 2–4 seconds and raise ISO."
+            }
+            "city" -> {
                 if (tripod) {
-                    val f = clampAperture(8.0, lens, focal)
-                    s += Setting("Aperture", formatAperture(f), "Sharp throughout; city lights become little stars at f/11+.")
-                    s += Setting("ISO", iso(100), "Clean, noise-free night shots.")
-                    s += Setting("Shutter speed", "Camera chooses (often 2–15 s)", "Car lights become streaks, which looks great.")
-                    s += Setting("Drive", "2-second self-timer", "")
+                    mode = Mode.AV; modeWhy = "You set the aperture; the camera works out the long exposure."
+                    aperture(clampF(8.0, lens, focal), "Sharp everywhere; lights turn into little stars at f/11+.")
+                    isoFixed(100, "Clean, noise-free night photos.")
+                    sh = "Camera chooses (often 2–15 s)"
+                    timer()
                 } else {
-                    s += Setting("Aperture", formatAperture(wideOpen) + " (wide open)", "Let in all the light you can.")
-                    s += Setting("ISO", autoIso, "")
-                    s += Setting("Auto ISO min. shutter", formatShutter(hh), "Slowest speed you can hold steady with this lens.")
-                    s += Setting("Drive", "High-speed continuous, bursts of 3", "One of the three is usually sharpest.")
+                    mode = Mode.AV; modeWhy = "Wide aperture and Auto ISO let you shoot handheld at night."
+                    wideOpenAperture("Let in all the light you can.")
+                    isoAuto("Raises ISO so you can hold the camera.", hh)
+                    burst("One of three is usually sharpest.")
                 }
-                s += Setting("Exposure compensation", "−⅓ to −⅔", "Night scenes should look like night, and bright lights stay under control.")
-                s += Setting("White balance", "Auto, or 4000 K for a bluer sky", "")
-                s += Setting("Metering", "Evaluative", "")
-                stabiliser()
-                s += quality
-                tips += "Blue hour lasts only ~20 minutes after sunset. The sky then matches the city lights perfectly."
-                tips += "Valparaíso: shoot from Paseo Gervasoni or Cerro Alegre looking over the bay."
-                tips += "Santiago: Cerro San Cristóbal or Cerro Santa Lucía with the Andes behind the skyline."
-                Recommendation("Av (Aperture priority)", "Aperture fixed; the camera works out the long shutter speed.", s, tips, warn)
+                expComp("−⅓ to −⅔", "Night should look like night, and lights don't blow out.")
+                wb("Auto, or 4000 K for a bluer sky", "")
+                af(true); metering(); stabilizer(); quality()
+                tips += "Blue hour, 15–30 minutes after sunset, is the magic moment: the sky still has colour when the lights come on."
+                tips += "Bridges and rooftops make great viewpoints."
+                tips += "Water doubles the lights with reflections."
+                mistakes += "Blurry handheld shots: brace against a wall and breathe out while pressing the button."
             }
-
-            "street" -> {
-                val f = clampAperture(5.6, lens, focal)
-                s += Setting("Aperture", formatAperture(f), "Enough depth of field for quick, unplanned shots.")
-                s += Setting("ISO", autoIso, "")
-                s += Setting("Auto ISO min. shutter", "1/250 s", "Freezes people walking by.")
-                s += Setting("Autofocus", if (body.mirrorless) "Servo AF, face/eye detection ON, whole area" else "One Shot AF, centre point", "")
-                s += Setting("Metering", "Evaluative", "")
-                s += Setting("Exposure compensation", "0 (−⅓ in harsh sun)", "")
-                s += Setting("White balance", "Auto", "")
-                stabiliser()
-                s += quality
-                tips += "Valparaíso murals: midday light is harsh; shady streets and overcast days make colours pop."
-                tips += "Always ask before photographing people up close. A smile and '¿Puedo tomar una foto?' goes a long way."
-                tips += "Keep the camera strap around your wrist or body in busy areas of Santiago and Valparaíso."
-                Recommendation("Av (Aperture priority)", "Quick and easy: you set depth of field, the camera does the rest.", s, tips, warn)
+            "trails" -> {
+                mode = Mode.M; modeWhy = "You choose a long shutter so moving lights become lines."
+                if (!tripod) warn += "Light trails need a tripod or a steady surface."
+                aperture(clampF(11.0, lens, focal), "Small aperture allows a long shutter without overexposing.", manual = true)
+                isoFixed(100, "Clean image during long exposures.")
+                shutter("10–30 seconds", "Long enough for cars to cross the whole frame.")
+                af(true, "then switch to MF"); timer(); stabilizer(); quality()
+                tips += "Find a bridge or a bend in the road at blue hour; the sky stays blue."
+                tips += "Start the shot just before a group of cars arrives."
+                mistakes += "Photo too bright: smaller aperture (f/16) or shorter time."
             }
-
+            "fireworks" -> {
+                mode = Mode.M; modeWhy = "Fixed settings work best: the bursts are too fast for the camera to adjust."
+                aperture(clampF(8.0, lens, focal), "Fireworks are bright; f/8 keeps colours rich.", manual = true)
+                isoFixed(100, "Clean, colourful bursts.")
+                shutter("2–4 seconds (or Bulb)", "Long enough for the trails of a burst, short enough to avoid a white mess.")
+                manualFocus("Autofocus struggles in the dark: focus on the first bursts or a distant light, then switch to MF.")
+                timer(); stabilizer(); quality()
+                if (!tripod) warn += "Fireworks need a tripod or a steady surface."
+                tips += "Get there early to find a spot upwind (no smoke) with a nice foreground: a bridge, the skyline, water."
+                tips += "Press the button when you hear the launch; release after the burst."
+                mistakes += "Big white blobs: shutter too long or aperture too wide. Try f/11 and 2 seconds."
+            }
+            "indoor" -> {
+                mode = Mode.AV; modeWhy = "Wide aperture and Auto ISO for as much light as possible."
+                wideOpenAperture("Let in as much light as possible.")
+                isoAuto("Indoors is much darker than it looks; the camera will raise ISO.", hh)
+                s += Setting(Kind.FLASH, "Flash", "OFF", "Often not allowed in churches and museums, and it makes things look flat.", "Close the pop-up flash, or set flash to OFF in the menu.")
+                wb("Auto", "Modern cameras handle indoor lights well.")
+                burst("Take three: one is usually sharpest.")
+                stabilizer(); quality()
+                tips += "Lean against a pillar or wall, breathe out and press the button gently."
+                tips += "Check the rules: some places don't allow photos at all."
+                mistakes += "Orange photos: set white balance to Auto (or 'Tungsten' / light bulb)."
+            }
+            "wildlife" -> {
+                mode = Mode.TV; modeWhy = "You set a fast shutter speed to freeze movement; the camera handles the rest."
+                // The faster of 1/1000 s (moving animals) and 1/(2 × focal length) for long lenses.
+                val t = Exposure.nearestShutter(min(1 / 1000.0, 1.0 / (2 * eq)))
+                shutter(formatShutter(t), "Freezes moving animals. Resting animals: 1/500 s is enough.")
+                ap = "Camera chooses (≈ ${formatAperture(wideOpen)})"
+                isoAuto("Shutter speed matters more than a bit of grain.")
+                af(false, if (body.animalAf) v.subjectDetect else "zone / area", "Keeps the animal sharp as it moves.")
+                burst(); expComp("0 (+⅔ for a dark animal on a bright background)", ""); stabilizer(); quality()
+                tips += "Get down to the animal's eye level for more intimate photos."
+                tips += "Focus on the eye. If the eye is sharp, the photo works."
+                tips += "Keep your distance and never feed or chase wild animals."
+                if (eq < 150) warn += "Your longest lens is short for wildlife. Get as close as is safe and crop later."
+                mistakes += "Blurry animal, sharp grass: the focus point wasn't on the animal. Use continuous AF and keep the point on it."
+            }
+            "birds" -> {
+                mode = Mode.TV; modeWhy = "A very fast shutter speed is everything for birds in flight."
+                shutter("1/2000 s", "Wings move fast. Big gliding birds: 1/1250 s also works.")
+                ap = "Camera chooses (≈ ${formatAperture(wideOpen)})"
+                isoAuto("Fast shutter speeds need more ISO.")
+                af(false, if (body.animalAf) v.subjectDetect else "wide area / tracking")
+                burst(); expComp("+⅔ to +1 against bright sky", "Otherwise birds come out as dark silhouettes."); stabilizer(); quality()
+                tips += "Start following the bird before you press the shutter, and keep following after."
+                tips += "Fly in towards you or across the light: the sun behind you lights the bird."
+                mistakes += "Bird is a black shape: add + exposure compensation."
+            }
+            "action" -> {
+                mode = Mode.TV; modeWhy = "Fast shutter speeds freeze the action."
+                shutter("1/1000 s", "Freezes running, jumping, surfing and cycling.")
+                isoAuto("The camera raises ISO to keep the shutter fast.")
+                af(false, "wide area / tracking"); burst("Take bursts and pick the best moment.")
+                stabilizer(); quality()
+                tips += "Anticipate: focus where the action will be and start the burst just before."
+                tips += "For a sense of speed, try panning: 1/60 s while following the subject smoothly."
+                mistakes += "Everything blurry: shutter too slow. Check the screen shows 1/1000 or faster."
+            }
+            "pets" -> {
+                mode = Mode.AV; modeWhy = "Wide aperture blurs the background, Auto ISO keeps it bright."
+                wideOpenAperture("A blurred background makes your pet stand out.")
+                isoAuto("Indoors pets need higher ISO to stay sharp.", Exposure.shutterAtMost(1 / 250.0))
+                af(false, if (body.animalAf) "${v.subjectDetect}, eye detection ON" else "zone", "Pets rarely sit still.")
+                burst(); stabilizer(); quality()
+                tips += "Get down to their eye level, on the floor if needed."
+                tips += "A treat or squeaky toy just above the lens gets their attention."
+                tips += "Window light is the most flattering light indoors."
+                mistakes += "Blurry fur: shutter too slow. Make sure it's at least 1/250 s."
+            }
             "portrait" -> {
-                s += Setting("Aperture", formatAperture(wideOpen) + " (wide open)", "Blurs the background so the person stands out.")
-                s += Setting("ISO", autoIso, "")
-                s += Setting("Autofocus", if (body.mirrorless) "One Shot or Servo, eye detection ON" else "One Shot AF, single point on the nearest eye", "Sharp eyes are what make a portrait.")
-                s += Setting("Metering", "Evaluative", "")
-                s += Setting("Exposure compensation", "+⅓ (+⅔ to +1 with the sun behind them)", "Keeps faces bright.")
-                s += Setting("White balance", "Auto (or Cloudy for warmer skin)", "")
-                stabiliser()
-                s += quality
-                tips += "Avoid midday sun on faces: put people in the shade, or with the sun behind them and add exposure. Desert sun at 2,400 m is extra harsh."
-                tips += "Step back and zoom in instead of standing close with a wide angle; faces look better."
-                Recommendation("Av (Aperture priority)", "Wide aperture for a blurred background; the camera handles the rest.", s, tips, warn)
+                mode = Mode.AV; modeWhy = "Wide aperture for a blurred background; the camera handles the rest."
+                wideOpenAperture("Blurs the background so the person stands out.")
+                isoAuto("Keeps the shutter fast enough.", hh)
+                af(true, "eye detection ON (or single point on the nearest eye)", "Sharp eyes make a portrait.")
+                expComp("+⅓", "Keeps faces bright.")
+                wb("Auto (Cloudy for warmer skin)", "")
+                stabilizer(); style(v.styleStandard, "Natural skin tones."); quality()
+                tips += "Put people in open shade or with the sun behind them: no squinting, soft light."
+                tips += "Step back and zoom in rather than standing close with a wide angle: faces look better."
+                tips += "Talk to people while shooting; relaxed people look better. Always ask before photographing strangers."
+                mistakes += "Face too dark with bright background: add +⅔ to +1 exposure compensation."
             }
-
-            "geysers" -> {
-                val f = clampAperture(5.6, lens, focal)
-                s += Setting("Aperture", formatAperture(f), "")
-                s += Setting("ISO", if (tripod) iso(400) else autoIso, "It's still dim at dawn.")
-                if (!tripod) s += Setting("Auto ISO min. shutter", formatShutter(min(hh, 1 / 60.0).let { Exposure.shutterAtMost(it) }), "Hands shake in the cold.")
-                s += Setting("Exposure compensation", "−⅔ when shooting into the sun", "Backlit steam is very bright; this keeps texture in it.")
-                s += Setting("White balance", "Daylight ☀", "Keeps the golden-blue dawn colours.")
-                s += Setting("Metering", "Evaluative", "")
-                s += Setting("Drive", "High-speed continuous", "Eruptions are short; take bursts.")
-                stabiliser()
-                s += quality
-                tips += "Tours leave San Pedro around 4:30–5:00. The steam is best just before and right after sunrise (~6:30)."
-                tips += "It can be −10 °C at 4,300 m. Keep a spare battery in an inside pocket; cold batteries die fast."
-                tips += "Put the camera in a bag before going back into a warm car to avoid condensation."
-                Recommendation("Av (Aperture priority)", "The light changes minute by minute; let the camera adjust the shutter.", s, tips, warn)
+            "street" -> {
+                mode = Mode.AV; modeWhy = "Quick and easy: you set the depth, the camera does the rest."
+                aperture(clampF(8.0, lens, focal), "Enough depth for quick, unplanned photos.")
+                isoAuto("Shade and bright streets change all the time.", Exposure.shutterAtMost(1 / 250.0))
+                af(true, "wide area")
+                wb("Auto", ""); stabilizer(); quality()
+                tips += "Look for colour, light and repeating shapes, then wait for a person to walk into the scene."
+                tips += "Midday sun is harsh: shady streets and the hours around sunset look better."
+                tips += "Keep the strap around your wrist or body in busy places."
+                mistakes += "Tilted buildings: hold the camera level, and step back rather than tilting up."
             }
-
-            "forest" -> {
-                s += Setting("Aperture", formatAperture(clampAperture(8.0, lens, focal)), "Depth through the trees.")
-                if (tripod) {
-                    s += Setting("ISO", iso(100), "Forests are darker than they look; the tripod lets you keep ISO low.")
-                    s += Setting("Drive", "2-second self-timer", "")
-                } else {
-                    s += Setting("ISO", autoIso, "Under the canopy the light drops fast.")
-                    s += Setting("Auto ISO min. shutter", formatShutter(hh), "Slowest speed you can hold steady with this lens.")
-                }
-                s += Setting("Exposure compensation", "−⅓ to −⅔", "Keeps the bright sky gaps and light rays from blowing out and keeps the moody feel.")
-                s += Setting("White balance", "Cloudy ☁", "Removes the cold green-blue cast of shade and rain.")
-                s += Setting("Metering", "Evaluative", "")
-                s += Setting("Focus", "One Shot AF on a trunk or fern in the foreground", "")
-                stabiliser()
-                s += quality
-                tips += "Rainy and overcast days are a gift here: soft light, saturated greens, no harsh shadows."
-                tips += "Look for layers: a fern in front, mossy trunks in the middle, mist behind."
-                tips += "Bring a rain cover or a plastic bag and a microfibre cloth; wipe the front of the lens before every shot."
-                tips += "Nalca (giant rhubarb) leaves make great foreground frames in Chiloé and Alerce Andino."
-                Recommendation("Av (Aperture priority)", "You set depth of field; the camera finds the (often slow) shutter speed.", s, tips, warn)
+            "architecture" -> {
+                mode = Mode.AV; modeWhy = "Small aperture for sharpness everywhere."
+                aperture(clampF(8.0, lens, focal), "Everything sharp from the door to the roof.")
+                if (tripod) { isoFixed(100, "Clean detail."); timer() } else isoAuto("Keeps the shutter fast enough to hold steady.", hh)
+                af(true); expComp("0 (−⅓ with bright sky)", ""); wb("Daylight ☀ (Auto indoors)", ""); stabilizer(); quality()
+                tips += "Hold the camera straight and level so walls don't lean. Step back instead of tilting up."
+                tips += "Blue hour, when the lights are on and the sky is still blue, makes buildings glow."
+                tips += "Look for symmetry: stand exactly in the middle."
+                mistakes += "Leaning buildings: you tilted the camera up. Many editors can straighten this later."
             }
-
-            else -> { // indoor
-                s += Setting("Aperture", formatAperture(wideOpen) + " (wide open)", "Let in as much light as possible.")
-                s += Setting("ISO", autoIso, "")
-                s += Setting("Auto ISO min. shutter", formatShutter(hh), "The slowest speed you can hold steady with this lens.")
-                s += Setting("Flash", "OFF", "Often not allowed in churches/museums, and it flattens the light anyway.")
-                s += Setting("White balance", "Auto (White priority) in warm-lit rooms", "Removes the orange cast of tungsten lights.")
-                s += Setting("Drive", "Continuous, bursts of 3", "")
-                stabiliser()
-                s += quality
-                tips += "Brace yourself against a pillar or wall, breathe out and squeeze the shutter gently."
-                tips += "Check the rules: some churches and museums don't allow photos at all. Chiloé's UNESCO wooden churches are usually fine without flash."
-                Recommendation("Av (Aperture priority)", "Wide aperture and Auto ISO for maximum light.", s, tips, warn)
+            "food" -> {
+                mode = Mode.AV; modeWhy = "Choose how much of the plate is sharp."
+                aperture(clampF(4.0, lens, focal), "Slightly blurred background, but the dish sharp.")
+                isoAuto("Restaurants are dark; Auto ISO keeps the shutter fast enough.", hh)
+                af(true, "single point on the most important part")
+                wb("Auto", "")
+                s += Setting(Kind.FLASH, "Flash", "OFF", "Flash makes food look flat and greasy.", "Close the flash or turn it off in the menu.")
+                stabilizer(); quality()
+                tips += "Sit near a window: side light makes food look delicious."
+                tips += "Shoot from straight above for flat dishes, from the side for burgers and cakes."
+                mistakes += "Orange colours in the evening: set white balance to Auto or Tungsten."
             }
+            else -> {}
         }
-        return rec
+
+        val modeLabel = when (mode) {
+            Mode.AV -> if (v.av.contains("aperture")) v.av else "${v.av} (aperture priority)"
+            Mode.TV -> if (v.tv.contains("shutter")) v.tv else "${v.tv} (shutter priority)"
+            Mode.M -> "M (manual)"
+        }
+        return Recommendation(mode, modeLabel, modeWhy, h.mode(mode), ap, sh, iso, s, tips, mistakes, warn)
     }
 
-    /** Small glossary for beginners. */
+    /** Short plain-language explanations for the basics. */
     val basics = listOf(
-        "Av" to "Aperture priority. You turn the dial to choose the f-number; the camera picks the shutter speed. Best for most situations.",
-        "Tv" to "Shutter priority. You choose the shutter speed (e.g. 1/1000 to freeze motion); the camera picks the aperture.",
-        "M" to "Manual. You choose both. Use it for stars, waterfalls and when you want every shot identical.",
-        "Aperture (f/…)" to "Small number (f/2.8) = more light and blurry background. Big number (f/11) = everything sharp, less light.",
-        "Shutter speed" to "1/1000 s freezes action. 1 s blurs moving water or shaky hands.",
-        "ISO" to "Sensor sensitivity. Low (100) = cleanest. High (6400) = brighter but grainier.",
-        "Exposure compensation (+/−)" to "Tell the camera 'brighter' or 'darker'. In Av/Tv: turn the rear dial (or press Av± on Rebels).",
-        "Q button" to "Opens the quick menu on the screen: fastest way to change ISO, AF, drive mode and white balance.",
-        "Histogram" to "Graph of brightness in playback (press INFO). Touching the right edge = blown-out highlights.",
+        "Aperture priority (Av or A)" to "You choose the f-number; the camera picks the shutter speed. The best everyday mode.",
+        "Shutter priority (Tv or S)" to "You choose the shutter speed (e.g. 1/1000 to freeze motion); the camera picks the aperture.",
+        "Manual (M)" to "You choose both. For stars, fireworks and waterfalls.",
+        "Aperture (f/…)" to "Small number (f/2.8) = more light and a blurry background. Big number (f/11) = everything sharp, less light.",
+        "Shutter speed" to "How long the camera looks. 1/1000 s freezes action; 1 second blurs moving water (and shaky hands).",
+        "ISO" to "How sensitive the camera is. Low (100) = cleanest. High (6400) = brighter but grainier.",
+        "Exposure compensation (+/–)" to "Tells the camera 'brighter' or 'darker' in Av, Tv and Auto ISO.",
+        "Half-press" to "Press the shutter button halfway to focus, then all the way to take the photo.",
+        "Histogram" to "A graph of brightness when you look at your photo. Touching the right edge = parts are pure white.",
     )
 }

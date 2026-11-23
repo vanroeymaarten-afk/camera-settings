@@ -58,7 +58,7 @@ fun GearScreen(state: AppState, onBack: () -> Unit, onDone: () -> Unit) {
 
         // ------------------------------------------------ camera
         item {
-            SectionCard("1. Your Canon camera") {
+            SectionCard("1. Your camera") {
                 val cam = state.camera
                 Row(
                     Modifier.fillMaxWidth().clickable { cameraOpen = !cameraOpen }.padding(vertical = 4.dp),
@@ -79,11 +79,13 @@ fun GearScreen(state: AppState, onBack: () -> Unit, onDone: () -> Unit) {
                 }
                 if (cameraOpen) {
                     Text(
-                        "The model name is printed on the front of the camera, e.g. \"EOS R50\" or \"EOS 250D\".",
+                        "The model name is printed on the camera, for example \"EOS R50\", \"Z50\" or \"A6400\".",
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(vertical = 4.dp),
                     )
-                    Gear.cameras.forEach { body ->
+                    Gear.cameras.groupBy { it.brand }.forEach { (brand, list) ->
+                        SectionLabel(if (brand == com.camerasettings.app.data.Brand.OTHER) "Don't know the model" else brand.label)
+                        list.forEach { body ->
                         Row(
                             Modifier.fillMaxWidth().clickable {
                                 state.selectCamera(body.id)
@@ -98,6 +100,7 @@ fun GearScreen(state: AppState, onBack: () -> Unit, onDone: () -> Unit) {
                             Text(body.name)
                         }
                     }
+                    }
                 }
             }
         }
@@ -106,7 +109,7 @@ fun GearScreen(state: AppState, onBack: () -> Unit, onDone: () -> Unit) {
         item {
             SectionCard("2. Your lenses (tick all you'll bring)") {
                 Text(
-                    "The lens name is printed on the lens barrel or front ring, e.g. \"RF-S 18-45mm\" or \"EF-S 18-55mm\".",
+                    "The lens name is printed on the lens, for example \"18-55mm\". Compact cameras have a built-in lens.",
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -116,8 +119,9 @@ fun GearScreen(state: AppState, onBack: () -> Unit, onDone: () -> Unit) {
                 }
             }
         }
-        val mounts = compatibleMounts(state.camera?.id, state.camera?.mirrorless, state.camera?.sensor?.crop)
-        val shown = Gear.lenses.filter { showAllLenses || it.mount in mounts || it.id in state.lensIds }
+        val fits = Gear.lensesFor(state.camera).map { it.id }.toSet()
+        val shown = if (state.camera?.fixedLens != null) Gear.lenses.filter { it.id == state.camera?.fixedLens }
+            else Gear.lenses.filter { (showAllLenses && !it.mount.startsWith("builtin")) || it.id in fits || it.id in state.lensIds }
         items(shown, key = { it.id }) { lens ->
             Row(
                 Modifier.fillMaxWidth().clickable { state.toggleLens(lens.id) },
@@ -126,7 +130,7 @@ fun GearScreen(state: AppState, onBack: () -> Unit, onDone: () -> Unit) {
                 Checkbox(checked = lens.id in state.lensIds, onCheckedChange = { state.toggleLens(lens.id) })
                 Column {
                     Text(lens.name)
-                    Text(lens.mount, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(if (lens.mount == "any") "Generic" else if (lens.mount.startsWith("builtin")) "Built-in lens" else lens.mount, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -153,15 +157,6 @@ fun GearScreen(state: AppState, onBack: () -> Unit, onDone: () -> Unit) {
             }
         }
     }
-}
-
-private fun compatibleMounts(cameraId: String?, mirrorless: Boolean?, crop: Double?): Set<String> = when {
-    cameraId == null -> setOf("RF", "RF-S", "EF", "EF-S", "EF-M", "Other", "Built-in")
-    cameraId.startsWith("g") -> setOf("Built-in")
-    cameraId.startsWith("m") -> setOf("EF-M", "EF", "EF-S", "Other")
-    mirrorless == true -> setOf("RF", "RF-S", "EF", "EF-S", "Other") // EF/EF-S via adapter
-    crop != null && crop > 1 -> setOf("EF", "EF-S", "Other")
-    else -> setOf("EF", "Other")
 }
 
 @Composable
@@ -204,7 +199,7 @@ private fun CustomLensForm(existing: Lens?, onSave: (Lens) -> Unit) {
                     Lens(
                         AppState.CUSTOM_LENS_ID,
                         name.ifBlank { "My lens $lo-${hi}mm" },
-                        lo!!, hi!!, aw!!, at!!, hasIs, "Custom",
+                        lo!!, hi!!, aw!!, at!!, hasIs, "any",
                     ),
                 )
             },

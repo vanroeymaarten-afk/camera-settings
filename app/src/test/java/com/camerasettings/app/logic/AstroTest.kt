@@ -68,4 +68,18 @@ class AstroTest {
         assertTrue("new moon night ${newMoon.moonFreeMinutes}", newMoon.moonFreeMinutes > 300)
         assertTrue("full moon night ${fullMoon.moonFreeMinutes}", fullMoon.moonFreeMinutes < 30)
     }
+
+    @Test
+    fun reykjavikSummerHasNoDarkness() {
+        val p = Astro.planDay(LocalDate.of(2026, 6, 21), ZoneId.of("Atlantic/Reykjavik"), 64.15, -21.94)
+        assertFalse(p.night.fullyDark)
+    }
+
+    @Test
+    fun brusselsWinterSunrise() {
+        // Brussels, 21 Dec: sunrise ~08:44, sunset ~16:40 (UTC+1).
+        val p = Astro.planDay(LocalDate.of(2026, 12, 21), ZoneId.of("Europe/Brussels"), 50.85, 4.35)
+        near(p.sun.sunrise, 8, 44)
+        near(p.sun.sunset, 16, 40)
+    }
 }

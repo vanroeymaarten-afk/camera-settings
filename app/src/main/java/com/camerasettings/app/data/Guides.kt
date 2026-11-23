@@ -11,10 +11,10 @@ object Checklist {
         Group(
             "Before you fly",
             listOf(
-                Item("bat", "Charge all batteries, bring at least one spare", "Cold nights in the Atacama drain batteries quickly."),
+                Item("bat", "Charge all batteries, bring at least one spare", "Cold weather drains batteries quickly."),
                 Item("format", "Format memory cards in the camera", "Menu → Format card. Do it in the camera, not on a computer."),
                 Item("raw", "Set image quality to RAW + JPEG (L)", "JPEG to share, RAW to edit after the trip."),
-                Item("clock", "Set the camera clock to Chile time (UTC−3)", "So photos sort correctly and match your phone's."),
+                Item("clock", "Set the camera clock to local time at your destination", "So photos sort correctly and match your phone's."),
                 Item("clean", "Clean lenses and check the sensor for dust", "Take a photo of a clear sky at f/16 and zoom in on the back screen."),
                 Item("fw", "Update camera firmware (optional)", "Canon's website, or Camera Connect for some models."),
                 Item("connect", "Install Canon Camera Connect on your phone and pair it", "To send JPEGs to your phone over Wi-Fi."),
@@ -23,13 +23,13 @@ object Checklist {
         Group(
             "In the camera bag",
             listOf(
-                Item("cloth", "Microfibre cloths and a blower", "Atacama dust and Lake District rain."),
-                Item("rain", "Rain cover or a plastic bag + rubber band", "Puerto Montt and Chiloé get a lot of rain."),
+                Item("cloth", "Microfibre cloths and a blower", "For dust, sand and raindrops."),
+                Item("rain", "Rain cover or a plastic bag + rubber band", "Cheap and it works."),
                 Item("tripod", "Small travel tripod", "For stars, waterfalls and blue hour."),
                 Item("filters", "Polarising filter (and an ND filter if you have one)", "Deep blue skies and lagoons; silky waterfalls."),
-                Item("lamp", "Headlamp with a red-light mode", "For star photography and the El Tatio pre-dawn walk."),
+                Item("lamp", "Headlamp with a red-light mode", "For star photography and early-morning walks."),
                 Item("cards", "Spare memory cards", "See the storage calculator for how many."),
-                Item("adapter", "Plug adapter: type C / L, 220 V", "Chile's sockets; most chargers handle 220 V."),
+                Item("adapter", "Plug adapter for your destination", "Most camera chargers work on 100–240 V."),
                 Item("ziplock", "Zip bags", "Seal the camera in one before entering a warm car after the cold (stops condensation)."),
                 Item("backup", "Card reader or a way to back up", "Laptop, phone with USB-C reader, or portable SSD."),
             ),
@@ -40,16 +40,16 @@ object Checklist {
                 Item("eve_backup", "Back up today's photos (keep 2 copies)", "Never format a card until it's backed up twice."),
                 Item("eve_charge", "Charge all batteries"),
                 Item("eve_wipe", "Wipe the lens and check for dust or spray"),
-                Item("eve_plan", "Check tomorrow's light in Sun & Stars", "Golden hour, moon and the star calendar."),
+                Item("eve_plan", "Check tomorrow's light in the Plan tab", "Golden hour, moon and the star calendar."),
             ),
         ),
         Group(
-            "Atacama specifics",
+            "Tough conditions",
             listOf(
-                Item("alt", "Take it slow at altitude (2,400–4,300 m)", "Drink lots of water; El Tatio and the lagoons are above 4,000 m."),
-                Item("dust", "Change lenses with the camera pointing down, out of the wind", "The desert dust gets onto the sensor easily."),
-                Item("cold", "Warm layers for El Tatio and star nights", "−10 °C at dawn at the geysers."),
-                Item("sun", "Sunscreen and sunglasses", "UV is extreme at altitude."),
+                Item("cold", "Cold: spare battery in an inside pocket", "And a zip bag to stop condensation when you go back inside."),
+                Item("dust", "Dust and sand: change lenses pointing down, out of the wind", "Dust on the sensor shows up as dark spots."),
+                Item("heat", "Heat: don't leave the camera in a hot car or in the sun", ""),
+                Item("alt", "High altitude: take it slow, drink water", "Your body needs time; so do you to think about settings."),
             ),
         ),
     )

@@ -4,7 +4,7 @@ import java.util.Locale
 import java.util.UUID
 
 /**
- * Editing looks for the trip. Each one is shown as a step-by-step recipe in the app
+ * Editing looks. Each one is shown as a step-by-step recipe in the app
  * and can be exported as an Adobe Lightroom / Camera Raw preset (.xmp).
  */
 data class EditPreset(
@@ -108,10 +108,10 @@ object Presets {
 
     val all: List<EditPreset> = listOf(
         EditPreset(
-            id = "atacama_gold",
-            name = "Atacama Gold",
+            id = "golden_warm",
+            name = "Golden Warmth",
             tagline = "Glowing desert sunsets with rich orange rock and soft purple shadows.",
-            useFor = "Valle de la Luna, El Tatio, Laguna Chaxa, any golden hour",
+            useFor = "Sunsets, deserts, autumn colours, any golden hour",
             whiteBalance = "Start from As Shot, then warm it: Temp +300 to +500 K (RAW) or +8 on the slider (JPEG). Tint +5.",
             basic = EditPreset.Basic(contrast = 15, highlights = -45, shadows = 30, whites = 10, blacks = -12, texture = 10, clarity = 12, dehaze = 8, vibrance = 20),
             hsl = listOf(
@@ -130,7 +130,7 @@ object Presets {
             id = "desert_night",
             name = "Desert Night",
             tagline = "Clean, deep night skies with natural star colours and controlled noise.",
-            useFor = "Milky Way, Carina Nebula, Magellanic Clouds over the Atacama",
+            useFor = "Milky Way, star fields, northern lights",
             whiteBalance = "Set Temp to about 3900–4300 K and Tint +5 to +10 for a neutral blue-black sky.",
             basic = EditPreset.Basic(exposure = 0.3, contrast = 20, highlights = -30, shadows = 20, whites = 15, blacks = -20, texture = 15, clarity = 25, dehaze = 20, vibrance = 15, saturation = -5),
             hsl = listOf(
@@ -147,7 +147,7 @@ object Presets {
             id = "andes_clear",
             name = "Andes Clear",
             tagline = "Deep high-altitude blue skies against warm earth and golden grass.",
-            useFor = "Lagunas Miscanti & Miñiques, Piedras Rojas, condors in the Maipo canyon",
+            useFor = "Mountains, lakes, high-altitude blue skies, birds against the sky",
             whiteBalance = "As Shot (Daylight). If the sky looks cyan, Temp +200 K.",
             basic = EditPreset.Basic(contrast = 20, highlights = -35, shadows = 25, whites = 8, blacks = -10, texture = 15, clarity = 15, dehaze = 12, vibrance = 18),
             hsl = listOf(
@@ -162,9 +162,9 @@ object Presets {
         ),
         EditPreset(
             id = "city_blue",
-            name = "Santiago Blue Hour",
+            name = "City Blue Hour",
             tagline = "Blue sky, warm city lights: the classic teal-and-amber night look.",
-            useFor = "Santiago skyline, Valparaíso at night, Puerto Varas waterfront",
+            useFor = "Skylines, lit buildings, light trails, fireworks",
             whiteBalance = "Temp about 4000–4500 K keeps the sky blue while lights stay warm.",
             basic = EditPreset.Basic(contrast = 18, highlights = -50, shadows = 25, whites = 12, blacks = -15, clarity = 10, dehaze = 5, vibrance = 15),
             hsl = listOf(
@@ -182,7 +182,7 @@ object Presets {
             id = "puerto_color",
             name = "Colour Port",
             tagline = "Bright, joyful colour that keeps skin and white walls natural.",
-            useFor = "Valparaíso hills, Chiloé palafitos, markets, street art",
+            useFor = "Markets, colourful streets, festivals, food",
             whiteBalance = "As Shot, then Temp +150 K for a little sunshine.",
             basic = EditPreset.Basic(contrast = 15, highlights = -30, shadows = 20, whites = 10, blacks = -8, texture = 12, clarity = 10, vibrance = 25, saturation = 5),
             hsl = listOf(
@@ -200,7 +200,7 @@ object Presets {
             id = "lakes_volcanoes",
             name = "Lakes & Volcanoes",
             tagline = "Fresh greens, turquoise water and a warm glow on the snow.",
-            useFor = "Osorno over Lake Llanquihue, Saltos del Petrohué, Frutillar pier",
+            useFor = "Waterfalls, rivers, green landscapes, lakes",
             whiteBalance = "As Shot, Temp +200 to +300 K. At sunset use Cloudy (6500 K) for pink snow.",
             basic = EditPreset.Basic(contrast = 15, highlights = -40, shadows = 30, whites = 10, blacks = -10, texture = 12, clarity = 15, dehaze = 10, vibrance = 20),
             hsl = listOf(
@@ -217,7 +217,7 @@ object Presets {
             id = "moody_south",
             name = "Moody South",
             tagline = "Soft, matte, film-like: olive greens, warm highlights and a little grain.",
-            useFor = "Rainforest, rainy Chiloé days, penguins under grey skies",
+            useFor = "Forests, fog, rainy days, moody portraits",
             whiteBalance = "Cloudy (6500 K) or As Shot +400 K to take the chill out of rain light.",
             basic = EditPreset.Basic(contrast = 10, highlights = -40, shadows = 20, whites = -5, blacks = 5, texture = 10, clarity = 15, dehaze = 10, vibrance = -5, saturation = -10),
             hsl = listOf(
@@ -329,10 +329,10 @@ object Presets {
         fun alt(tag: String, text: String) {
             sb.append("   <crs:$tag>\n    <rdf:Alt>\n     <rdf:li xml:lang=\"x-default\">${esc(text)}</rdf:li>\n    </rdf:Alt>\n   </crs:$tag>\n")
         }
-        alt("Name", "Chile - ${p.name}")
+        alt("Name", "Camera Coach - ${p.name}")
         alt("ShortName", p.name)
-        alt("SortName", "Chile - ${p.name}")
-        alt("Group", "Camera Coach Chile")
+        alt("SortName", "Camera Coach - ${p.name}")
+        alt("Group", "Camera Coach")
         alt("Description", p.tagline + " White balance: " + p.whiteBalance)
         sb.append("   <crs:ToneCurvePV2012>\n    <rdf:Seq>\n")
         p.curve.forEach { (x, y) -> sb.append("     <rdf:li>$x, $y</rdf:li>\n") }
@@ -344,7 +344,7 @@ object Presets {
         return sb.toString()
     }
 
-    fun fileName(p: EditPreset) = "Chile - ${p.name}.xmp"
+    fun fileName(p: EditPreset) = "Camera Coach - ${p.name}.xmp"
 
     private fun esc(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 }

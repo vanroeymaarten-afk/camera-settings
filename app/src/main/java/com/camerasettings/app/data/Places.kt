@@ -1,46 +1,106 @@
 package com.camerasettings.app.data
 
-enum class Region(val title: String, val blurb: String) {
-    ATACAMA("Atacama Desert", "San Pedro, salt flats, lagoons, geysers and the clearest night skies on Earth"),
-    SANTIAGO("Santiago & Valparaíso", "The capital under the Andes, condors in the Maipo canyon, the colourful port"),
-    LAKES("Puerto Montt & the Lakes", "Volcanoes over lakes, turquoise waterfalls, Chiloé's stilt houses and rainforest"),
-}
+import android.content.Context
+import java.text.Normalizer
+import java.time.ZoneId
+import kotlin.math.cos
 
+/** A location for sun, moon and star times. */
 data class Place(
-    val id: String,
     val name: String,
-    val region: Region?,
+    val country: String,
     val lat: Double,
     val lon: Double,
-    val zone: String = "America/Santiago",
-    val note: String = "",
-)
+    val zone: String,
+    val population: Int = 0,
+    val landmark: Boolean = false,
+) {
+    val zoneId: ZoneId get() = runCatching { ZoneId.of(zone) }.getOrDefault(ZoneId.systemDefault())
+    val subtitle: String get() = if (landmark) "Photo spot · $country" else country
 
-object Places {
-    const val GPS_ID = "gps"
+    fun encode() = listOf(name, country, lat, lon, zone, population, landmark).joinToString("|")
 
-    val all: List<Place> = listOf(
-        // Atacama
-        Place("sanpedro", "San Pedro de Atacama", Region.ATACAMA, -22.91, -68.20, note = "Your base. 2,400 m altitude."),
-        Place("valleluna", "Valle de la Luna", Region.ATACAMA, -22.93, -68.27, note = "Sunset from Mirador de Kari / Piedra del Coyote."),
-        Place("eltatio", "El Tatio geysers", Region.ATACAMA, -22.33, -68.01, note = "4,300 m. Best just before sunrise. Very cold."),
-        Place("chaxa", "Laguna Chaxa (flamingos)", Region.ATACAMA, -23.29, -68.18, note = "Inside the Salar de Atacama."),
-        Place("miscanti", "Lagunas Miscanti & Miñiques", Region.ATACAMA, -23.74, -67.77, note = "4,100 m. Deep blue lagoons."),
-        Place("piedrasrojas", "Piedras Rojas", Region.ATACAMA, -23.97, -67.70, note = "Red rocks by a turquoise salt lake."),
-        // Santiago & central Chile
-        Place("santiago", "Santiago centre", Region.SANTIAGO, -33.44, -70.65),
-        Place("sancristobal", "Cerro San Cristóbal (view point)", Region.SANTIAGO, -33.42, -70.63, note = "Skyline with the Andes behind."),
-        Place("maipo", "Cajón del Maipo (condors)", Region.SANTIAGO, -33.64, -70.35, note = "Canyon 1.5 h south-east of Santiago."),
-        Place("valparaiso", "Valparaíso", Region.SANTIAGO, -33.05, -71.62, note = "Day trip, 1.5 h from Santiago."),
-        // Puerto Montt & Lake District
-        Place("puertomontt", "Puerto Montt / Angelmó", Region.LAKES, -41.48, -72.94),
-        Place("puertovaras", "Puerto Varas", Region.LAKES, -41.32, -72.98, note = "Osorno across Lake Llanquihue."),
-        Place("frutillar", "Frutillar", Region.LAKES, -41.12, -73.05, note = "Classic Osorno sunset spot from the pier."),
-        Place("petrohue", "Saltos del Petrohué", Region.LAKES, -41.16, -72.41, note = "Turquoise falls below Osorno."),
-        Place("alerce", "Alerce Andino rainforest", Region.LAKES, -41.53, -72.62),
-        Place("castro", "Castro, Chiloé (palafitos)", Region.LAKES, -42.48, -73.76),
-        Place("punihuil", "Puñihuil penguins (Chiloé)", Region.LAKES, -41.92, -74.04, note = "Boat trips Sept–March, morning best."),
-    )
+    companion object {
+        fun decode(s: String?): Place? {
+            val p = s?.split("|") ?: return null
+            if (p.size < 7) return null
+            return runCatching { Place(p[0], p[1], p[2].toDouble(), p[3].toDouble(), p[4], p[5].toInt(), p[6].toBoolean()) }.getOrNull()
+        }
+    }
+}
 
-    fun byId(id: String?): Place? = all.firstOrNull { it.id == id }
+/**
+ * Offline world gazetteer: GeoNames cities with 15,000+ inhabitants (CC BY 4.0, geonames.org)
+ * plus famous photo destinations. Loaded once, in the background.
+ */
+object World {
+    @Volatile private var cities: List<Place> = emptyList()
+    @Volatile private var keys: List<String> = emptyList()
+    @Volatile private var landmarks: List<Place> = emptyList()
+    @Volatile private var landmarkKeys: List<String> = emptyList()
+
+    val loaded get() = cities.isNotEmpty()
+
+    @Synchronized
+    fun load(ctx: Context) {
+        if (loaded) return
+        fun read(file: String, landmark: Boolean): Pair<List<Place>, List<String>> {
+            val places = ArrayList<Place>(40000)
+            val k = ArrayList<String>(40000)
+            ctx.assets.open(file).bufferedReader().useLines { lines ->
+                lines.forEach { line ->
+                    val f = line.split('\t')
+                    if (f.size >= 7) {
+                        places += Place(f[0], f[2], f[3].toDouble(), f[4].toDouble(), f[5], f[6].toIntOrNull() ?: 0, landmark)
+                        k += f[1]
+                    }
+                }
+            }
+            return places to k
+        }
+        val (l, lk) = read("landmarks.tsv", true)
+        landmarks = l; landmarkKeys = lk
+        val (c, ck) = read("cities.tsv", false)
+        keys = ck; cities = c
+    }
+
+    fun normalize(s: String): String =
+        Normalizer.normalize(s, Normalizer.Form.NFKD).replace(Regex("\\p{M}+"), "").lowercase().trim()
+
+    /** Landmarks first, then cities by population; prefix matches before "contains" matches. */
+    fun search(query: String, limit: Int = 40): List<Place> {
+        val q = normalize(query)
+        if (q.length < 2) return emptyList()
+        val out = ArrayList<Place>()
+        for (i in landmarks.indices) if (landmarkKeys[i].contains(q)) out += landmarks[i]
+        val prefix = ArrayList<Place>()
+        val contains = ArrayList<Place>()
+        for (i in cities.indices) {
+            val k = keys[i]
+            if (k.startsWith(q)) prefix += cities[i] else if (q.length >= 3 && k.contains(q)) contains += cities[i]
+            if (prefix.size >= limit) break
+        }
+        out += prefix
+        out += contains.take(limit)
+        return out.take(limit)
+    }
+
+    /** Nearest known city: gives a time zone (and a name) for a GPS position. */
+    fun nearest(lat: Double, lon: Double): Place? {
+        var best: Place? = null
+        var bd = Double.MAX_VALUE
+        val k = cos(Math.toRadians(lat))
+        for (p in cities) {
+            val dx = (p.lon - lon) * k
+            val dy = p.lat - lat
+            val d = dx * dx + dy * dy
+            if (d < bd) { bd = d; best = p }
+        }
+        return best
+    }
+
+    /** The biggest city in the phone's own time zone: a sensible default location. */
+    fun defaultFor(zone: ZoneId): Place? = cities.firstOrNull { it.zone == zone.id }
+
+    val featured: List<Place> get() = landmarks
 }
