@@ -24,6 +24,18 @@ data class CameraBody(
 ) {
     /** Approximate pixel size in micrometres (3:2 sensor). */
     val pixelPitchUm: Double get() = sensor.widthMm * 1000 / sqrt(megapixels * 1e6 * 1.5)
+
+    /** Canon's RAW file type: older bodies write .CR2, everything from ~2018 on writes .CR3. */
+    val rawFormat: String get() = if (id in CR2_BODIES) "CR2" else "CR3"
+
+    /** Typical file sizes in MB (they vary with ISO and detail). */
+    val rawMb: Double get() = megapixels * (if (rawFormat == "CR2") 1.25 else 1.15)
+    val craw: Boolean get() = rawFormat == "CR3"
+    val jpegMb: Double get() = megapixels * 0.33
+
+    private companion object {
+        val CR2_BODIES = setOf("5div", "6dii", "6d", "80d", "7dii", "800d", "2000d", "4000d")
+    }
 }
 
 data class Lens(

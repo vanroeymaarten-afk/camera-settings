@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -41,17 +42,18 @@ import com.camerasettings.app.data.Gear
 import com.camerasettings.app.data.Lens
 
 @Composable
-fun GearScreen(state: AppState, onDone: () -> Unit) {
+fun GearScreen(state: AppState, onBack: () -> Unit, onDone: () -> Unit) {
     var cameraOpen by rememberSaveable { mutableStateOf(state.camera == null) }
     var showAllLenses by rememberSaveable { mutableStateOf(false) }
     var customOpen by rememberSaveable { mutableStateOf(false) }
 
     LazyColumn(
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        item { BackBar("My gear", onBack) }
         item {
-            ScreenTitle("My gear", "Tell the app what you're bringing to Chile. Advice is tailored to it.")
+            ScreenTitle("What's in your bag?", "Pick your Canon camera and the lenses you're bringing. All advice is tailored to them.")
         }
 
         // ------------------------------------------------ camera
@@ -146,7 +148,7 @@ fun GearScreen(state: AppState, onDone: () -> Unit) {
 
         item {
             Spacer(Modifier.padding(4.dp))
-            Button(onClick = onDone, enabled = state.hasGear, modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = onDone, enabled = state.hasGear, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                 Text(if (state.hasGear) "Done: show me settings" else "Pick a camera and at least one lens")
             }
         }

@@ -20,6 +20,8 @@ data class Scene(
     val title: String,
     val where: String,
     val lensPref: LensPref,
+    /** Illustration shown on the card (an example from the Shot guide), if any. */
+    val art: String? = null,
 )
 
 data class Setting(val name: String, val value: String, val why: String)
@@ -34,18 +36,19 @@ data class Recommendation(
 
 object Scenes {
     val all = listOf(
-        Scene("landscape", "🏔️", "Landscapes in daylight", "Torres del Paine, Atacama desert, volcanoes", LensPref.WIDE),
-        Scene("golden", "🌅", "Sunrise, sunset & golden hour", "Torres at sunrise, Valle de la Luna, Moai at sunset", LensPref.WIDE),
-        Scene("snow", "🧊", "Snow, glaciers & salt flats", "Grey Glacier, Salar de Atacama, Andes", LensPref.WIDE),
-        Scene("wildlife", "🦙", "Wildlife", "Guanacos, penguins, flamingos, foxes", LensPref.LONG),
-        Scene("birds", "🦅", "Birds in flight", "Andean condors, flamingos taking off", LensPref.LONG),
-        Scene("water", "💧", "Waterfalls & silky water", "Saltos del Petrohué, Salto Grande, lakes", LensPref.WIDE),
-        Scene("astro", "🌌", "Milky Way & stars", "Atacama, Valle del Elqui, Rapa Nui", LensPref.ASTRO),
-        Scene("blue", "🌃", "Blue hour & night city", "Valparaíso hills, Santiago skyline", LensPref.WIDE),
-        Scene("street", "🎨", "Streets & colourful towns", "Valparaíso murals, markets, Chiloé", LensPref.NORMAL),
-        Scene("portrait", "🙂", "People & travel portraits", "Your travel companions, locals (ask first!)", LensPref.PORTRAIT),
-        Scene("geysers", "♨️", "El Tatio geysers at dawn", "Steam, low light, −10 °C", LensPref.WIDE),
-        Scene("indoor", "⛪", "Indoors & low light", "Churches, museums, restaurants", LensPref.NORMAL),
+        Scene("landscape", "🏔️", "Landscapes in daylight", "Altiplano lagoons, Atacama desert, volcanoes", LensPref.WIDE, "altiplano"),
+        Scene("golden", "🌅", "Sunrise, sunset & golden hour", "Valle de la Luna, Osorno from Frutillar", LensPref.WIDE, "valle_luna"),
+        Scene("snow", "🧂", "Salt flats, snow & bright scenes", "Salar de Atacama, Laguna Cejar, Osorno's snow cap", LensPref.WIDE, "flamingos"),
+        Scene("wildlife", "🐧", "Wildlife", "Flamingos, vicuñas, Puñihuil penguins, sea lions", LensPref.LONG, "penguins"),
+        Scene("birds", "🦅", "Birds in flight", "Andean condors, flamingos taking off", LensPref.LONG, "condor"),
+        Scene("water", "💧", "Waterfalls & silky water", "Saltos del Petrohué, Lake District rivers", LensPref.WIDE, "petrohue"),
+        Scene("astro", "🌌", "Milky Way & stars", "Atacama: one of the darkest skies on Earth", LensPref.ASTRO, "milky_way"),
+        Scene("blue", "🌃", "Blue hour & night city", "Santiago skyline, Valparaíso, Puerto Varas", LensPref.WIDE, "santiago"),
+        Scene("street", "🎨", "Streets & colourful towns", "Valparaíso, Chiloé palafitos, markets", LensPref.NORMAL, "valparaiso"),
+        Scene("forest", "🌿", "Rainforest & moody weather", "Alerce Andino, Chiloé, rainy Lake District days", LensPref.WIDE, "forest"),
+        Scene("geysers", "♨️", "El Tatio geysers at dawn", "Steam, low light, −10 °C", LensPref.WIDE, "el_tatio"),
+        Scene("portrait", "🙂", "People & travel portraits", "Your travel companions, locals (ask first!)", LensPref.PORTRAIT, "palafitos"),
+        Scene("indoor", "⛪", "Indoors & low light", "Chiloé's wooden churches, museums, restaurants", LensPref.NORMAL),
     )
 
     fun byId(id: String?) = all.firstOrNull { it.id == id }
@@ -172,7 +175,7 @@ object Advisor {
                 } else {
                     s += Setting("ISO", autoIso, "Lets the camera raise ISO only when needed.")
                     s += Setting("Auto ISO min. shutter", formatShutter(min(hh, 1 / 125.0).let { Exposure.shutterAtMost(it) }),
-                        "Patagonian wind shakes you and the camera. This keeps shots sharp.")
+                        "Wind on the Altiplano shakes you and the camera. This keeps shots sharp.")
                     s += Setting("Drive", "Single shot", "")
                 }
                 s += Setting("Focus", "One Shot AF, single point ⅓ into the scene", "Focusing a third into the scene keeps the foreground and mountains sharp.")
@@ -181,7 +184,7 @@ object Advisor {
                 s += Setting("White balance", "Daylight ☀", "Keeps colours consistent from shot to shot (Auto sometimes greys out warm light).")
                 stabiliser()
                 s += quality
-                tips += "A circular polarising filter makes the Torres del Paine lakes turquoise and skies deep blue. Turn it while looking through the viewfinder."
+                tips += "A circular polarising filter makes the Altiplano lagoons and Lake Llanquihue deep blue and cuts glare. Turn it while looking through the viewfinder."
                 tips += "Put something in the foreground (rocks, flowers, a person) to show scale."
                 tips += "Check the histogram: if the graph hits the right edge, dial in −⅓ or −⅔."
                 Recommendation("Av (Aperture priority)", "You set the aperture for depth of field; the camera picks the shutter speed.", s, tips, warn)
@@ -200,7 +203,7 @@ object Advisor {
                 stabiliser()
                 s += quality
                 tips += "Open the 'Sun & Stars' tab for exact golden & blue hour times where you are."
-                tips += "Torres del Paine: the towers glow red only 5–15 minutes after sunrise. Be in position 45 min early."
+                tips += "Osorno volcano glows pink for 10–15 minutes after sunset, seen from Frutillar or Puerto Varas. Valle de la Luna is best from Mirador de Kari."
                 tips += "After sunset, keep shooting: the best colour in the clouds often comes 10–20 minutes later."
                 Recommendation("Av (Aperture priority)", "You fix the aperture; the camera follows the fast-changing light.", s, tips, warn)
             }
@@ -237,8 +240,8 @@ object Advisor {
                 stabiliser("Lets you hold a long lens steady.")
                 s += quality
                 tips += "Get low to the animal's eye level; it makes photos far more intimate."
-                tips += "Penguins: Isla Magdalena (boat from Punta Arenas) or Seno Otway. Guanacos are everywhere in Torres del Paine."
-                tips += "Keep at least 5–10 m from animals, more from pumas. Let them come to you."
+                tips += "Puñihuil (Chiloé): Humboldt and Magellanic penguins from small boats, best in the morning. Flamingos at Laguna Chaxa, vicuñas on the road to the Altiplano lagoons, sea lions at Angelmó market in Puerto Montt."
+                tips += "Keep your distance and never chase animals. Let them come to you."
                 if (focal * crop < 150) warn += "Your longest lens is fairly short for wildlife. Get as close as is safe and crop later."
                 Recommendation("Tv (Shutter priority)", "You set a fast shutter speed to freeze motion; the camera handles the rest.", s, tips, warn)
             }
@@ -256,7 +259,7 @@ object Advisor {
                 s += Setting("Exposure compensation", "+⅔ to +1 against bright sky", "Otherwise birds become dark silhouettes.")
                 if (hasIs) s += Setting("Image stabilizer", "ON (Mode 2 for panning if your lens has it)", "")
                 s += quality
-                tips += "Andean condors ride the thermals mid-morning. Good spots: Torres del Paine, Cajón del Maipo near Santiago."
+                tips += "Andean condors ride the thermals mid-morning. Best near Santiago: Cajón del Maipo and the road to Farellones."
                 tips += "Start tracking the bird before you press the shutter, and keep following through."
                 Recommendation("Tv (Shutter priority)", "Fast shutter speed is everything for birds in flight.", s, tips, warn)
             }
@@ -274,7 +277,7 @@ object Advisor {
                 s += quality
                 tips += "Overcast days or shade are perfect: less light, so you might not need an ND filter."
                 tips += "Want frozen splashes instead? Use 1/1000 s in Tv mode."
-                tips += "Saltos del Petrohué and Salto Grande (Torres del Paine) are classics. Mind the spray on your lens."
+                tips += "Saltos del Petrohué (1 h from Puerto Varas) is the classic: turquoise water over black lava with Osorno behind. Mind the spray on your lens."
                 Recommendation("M (Manual)", "You control everything so each shot in a series is the same.", s, tips, warn)
             }
 
@@ -299,7 +302,7 @@ object Advisor {
                 if (dslr) s += Setting("Viewfinder", "Use Live View (rear screen)", "You can't focus on stars through an optical viewfinder.")
                 tips += "Check the 'Sun & Stars' tab: it shows when it's really dark, when the moon is down and when the Milky Way centre is up."
                 tips += "In December the Milky Way centre is hidden behind the sun. Instead shoot the bright southern Milky Way (Carina Nebula, Southern Cross) and the Magellanic Clouds, which rise later in the night. The Sun & Stars tab shows when."
-                tips += "Patagonia never gets fully dark around the December solstice. Atacama, Valle del Elqui and Rapa Nui are the places for stars."
+                tips += "Atacama is the place for stars on your trip. The Puerto Montt region is often cloudy and has more light pollution."
                 tips += "Turn the screen brightness down and use a red headlamp to keep your night vision."
                 tips += "Atacama nights are close to 0 °C: bring warm clothes and a spare battery in an inside pocket."
                 if (wideOpen > 3.5) warn += "Your lens is fairly 'slow' (${formatAperture(wideOpen)}). It works, but expect noise. Take several shots of the same view to stack later."
@@ -356,7 +359,7 @@ object Advisor {
                 s += Setting("White balance", "Auto (or Cloudy for warmer skin)", "")
                 stabiliser()
                 s += quality
-                tips += "Avoid midday sun on faces: put people in the shade, or with the sun behind them and add exposure."
+                tips += "Avoid midday sun on faces: put people in the shade, or with the sun behind them and add exposure. Desert sun at 2,400 m is extra harsh."
                 tips += "Step back and zoom in instead of standing close with a wide angle; faces look better."
                 Recommendation("Av (Aperture priority)", "Wide aperture for a blurred background; the camera handles the rest.", s, tips, warn)
             }
@@ -378,6 +381,28 @@ object Advisor {
                 Recommendation("Av (Aperture priority)", "The light changes minute by minute; let the camera adjust the shutter.", s, tips, warn)
             }
 
+            "forest" -> {
+                s += Setting("Aperture", formatAperture(clampAperture(8.0, lens, focal)), "Depth through the trees.")
+                if (tripod) {
+                    s += Setting("ISO", iso(100), "Forests are darker than they look; the tripod lets you keep ISO low.")
+                    s += Setting("Drive", "2-second self-timer", "")
+                } else {
+                    s += Setting("ISO", autoIso, "Under the canopy the light drops fast.")
+                    s += Setting("Auto ISO min. shutter", formatShutter(hh), "Slowest speed you can hold steady with this lens.")
+                }
+                s += Setting("Exposure compensation", "−⅓ to −⅔", "Keeps the bright sky gaps and light rays from blowing out and keeps the moody feel.")
+                s += Setting("White balance", "Cloudy ☁", "Removes the cold green-blue cast of shade and rain.")
+                s += Setting("Metering", "Evaluative", "")
+                s += Setting("Focus", "One Shot AF on a trunk or fern in the foreground", "")
+                stabiliser()
+                s += quality
+                tips += "Rainy and overcast days are a gift here: soft light, saturated greens, no harsh shadows."
+                tips += "Look for layers: a fern in front, mossy trunks in the middle, mist behind."
+                tips += "Bring a rain cover or a plastic bag and a microfibre cloth; wipe the front of the lens before every shot."
+                tips += "Nalca (giant rhubarb) leaves make great foreground frames in Chiloé and Alerce Andino."
+                Recommendation("Av (Aperture priority)", "You set depth of field; the camera finds the (often slow) shutter speed.", s, tips, warn)
+            }
+
             else -> { // indoor
                 s += Setting("Aperture", formatAperture(wideOpen) + " (wide open)", "Let in as much light as possible.")
                 s += Setting("ISO", autoIso, "")
@@ -388,7 +413,7 @@ object Advisor {
                 stabiliser()
                 s += quality
                 tips += "Brace yourself against a pillar or wall, breathe out and squeeze the shutter gently."
-                tips += "Check the rules: some churches and museums don't allow photos at all."
+                tips += "Check the rules: some churches and museums don't allow photos at all. Chiloé's UNESCO wooden churches are usually fine without flash."
                 Recommendation("Av (Aperture priority)", "Wide aperture and Auto ISO for maximum light.", s, tips, warn)
             }
         }

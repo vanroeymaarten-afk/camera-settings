@@ -162,29 +162,6 @@ object Astro {
 
     private class Crossing(val time: ZonedDateTime, val rising: Boolean)
 
-    private fun crossings(
-        start: ZonedDateTime,
-        minutes: Long,
-        step: Long,
-        threshold: Double,
-        f: (Double) -> Double,
-    ): List<Crossing> {
-        val out = mutableListOf<Crossing>()
-        var t0 = start
-        var v0 = f(julianDay(t0)) - threshold
-        var m = step
-        while (m <= minutes) {
-            val t1 = start.plusMinutes(m)
-            val v1 = f(julianDay(t1)) - threshold
-            if ((v0 < 0) != (v1 < 0)) {
-                val frac = v0 / (v0 - v1)
-                out += Crossing(t0.plusSeconds((frac * step * 60).toLong()), v1 > v0)
-            }
-            t0 = t1; v0 = v1; m += step
-        }
-        return out
-    }
-
     private fun windows(times: List<ZonedDateTime>, flags: List<Boolean>): List<Window> {
         val out = mutableListOf<Window>()
         var startIdx = -1
@@ -199,11 +176,34 @@ object Astro {
         return out
     }
 
+    /** Sample a function every [step] minutes and return all threshold crossings. */
+    private class Samples(val start: ZonedDateTime, val step: Long, val values: DoubleArray) {
+        fun crossings(threshold: Double): List<Crossing> {
+            val out = mutableListOf<Crossing>()
+            for (i in 1 until values.size) {
+                val v0 = values[i - 1] - threshold
+                val v1 = values[i] - threshold
+                if ((v0 < 0) != (v1 < 0)) {
+                    val frac = v0 / (v0 - v1)
+                    out += Crossing(start.plusSeconds((((i - 1) + frac) * step * 60).toLong()), v1 > v0)
+                }
+            }
+            return out
+        }
+    }
+
+    private fun sample(start: ZonedDateTime, minutes: Long, step: Long, f: (Double) -> Double): Samples {
+        val n = (minutes / step).toInt() + 1
+        val jd0 = julianDay(start)
+        return Samples(start, step, DoubleArray(n) { f(jd0 + it * step / 1440.0) })
+    }
+
     fun planDay(date: LocalDate, zone: ZoneId, lat: Double, lon: Double): DayPlan {
         val midnight = date.atStartOfDay(zone)
         val sunF = { jd: Double -> sunAltitude(jd, lat, lon) }
-        fun rise(th: Double) = crossings(midnight, 1440, 2, th, sunF).firstOrNull { it.rising }?.time
-        fun set(th: Double) = crossings(midnight, 1440, 2, th, sunF).firstOrNull { !it.rising }?.time
+        val sunDay = sample(midnight, 1440, 2, sunF)
+        fun rise(th: Double) = sunDay.crossings(th).firstOrNull { it.rising }?.time
+        fun set(th: Double) = sunDay.crossings(th).firstOrNull { !it.rising }?.time
 
         val sun = SunTimes(
             astroDawn = rise(-18.0),
@@ -219,13 +219,13 @@ object Astro {
         )
 
         val moonF = { jd: Double -> moonAltitude(jd, lat, lon) }
-        val moonCross = crossings(midnight, 1440, 4, RISE_SET_ALT, moonF)
+        val moonCross = sample(midnight, 1440, 4, moonF).crossings(RISE_SET_ALT)
         val moonrise = moonCross.firstOrNull { it.rising }?.time
         val moonset = moonCross.firstOrNull { !it.rising }?.time
 
         // Night: from today's sunset (or 18:00) until tomorrow's sunrise (or 08:00)
         val nightStart = sun.sunset ?: midnight.plusHours(18)
-        val nextSunrise = crossings(midnight.plusDays(1), 720, 2, RISE_SET_ALT, sunF)
+        val nextSunrise = sample(midnight.plusDays(1), 720, 2, sunF).crossings(RISE_SET_ALT)
             .firstOrNull { it.rising }?.time ?: midnight.plusDays(1).plusHours(8)
         val times = mutableListOf<ZonedDateTime>()
         var t = nightStart
@@ -266,6 +266,48 @@ object Astro {
 
         return DayPlan(date, zone, sun, moonrise, moonset, phase, night)
     }
+
+    // ---------------------------------------------------------------- helpers for the UI
+
+    data class LightEvent(val label: String, val time: ZonedDateTime, val kind: Kind) {
+        enum class Kind { BLUE, GOLDEN, SUN, DARK }
+    }
+
+    /** All photo-relevant light moments of a day, in time order. */
+    fun events(plan: DayPlan): List<LightEvent> {
+        val s = plan.sun
+        return listOfNotNull(
+            s.astroDawn?.let { LightEvent("Night ends", it, LightEvent.Kind.DARK) },
+            s.blueMorningStart?.let { LightEvent("Blue hour", it, LightEvent.Kind.BLUE) },
+            s.goldenMorningStart?.let { LightEvent("Golden hour", it, LightEvent.Kind.GOLDEN) },
+            s.sunrise?.let { LightEvent("Sunrise", it, LightEvent.Kind.SUN) },
+            s.goldenEveningStart?.let { LightEvent("Golden hour", it, LightEvent.Kind.GOLDEN) },
+            s.sunset?.let { LightEvent("Sunset", it, LightEvent.Kind.SUN) },
+            s.blueEveningStart?.let { LightEvent("Blue hour", it, LightEvent.Kind.BLUE) },
+            s.astroDusk?.let { LightEvent("Dark sky", it, LightEvent.Kind.DARK) },
+        ).sortedBy { it.time }
+    }
+
+    /** Next light moment after [now] (looks into tomorrow if needed). */
+    fun nextEvent(now: ZonedDateTime, lat: Double, lon: Double): LightEvent? {
+        for (d in 0L..1L) {
+            val date = now.toLocalDate().plusDays(d)
+            val e = events(planDay(date, now.zone, lat, lon)).firstOrNull { it.time.isAfter(now) }
+            if (e != null) return e
+        }
+        return null
+    }
+
+    data class StarNight(val date: LocalDate, val moonFreeMinutes: Long, val illumination: Double, val waxing: Boolean, val fullyDark: Boolean)
+
+    /** Moon-free dark minutes for each night starting at [from], for [days] nights. */
+    fun starCalendar(from: LocalDate, days: Int, zone: ZoneId, lat: Double, lon: Double): List<StarNight> =
+        (0 until days).map { i ->
+            val d = from.plusDays(i.toLong())
+            val p = planDay(d, zone, lat, lon)
+            val minutes = p.night.moonFree.sumOf { java.time.Duration.between(it.start, it.end).toMinutes() }
+            StarNight(d, minutes, p.moon.illumination, p.moon.waxing, p.night.fullyDark)
+        }
 
     fun compass(azDeg: Double): String {
         val names = listOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")

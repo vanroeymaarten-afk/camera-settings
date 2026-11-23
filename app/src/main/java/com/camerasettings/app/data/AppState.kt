@@ -28,7 +28,25 @@ class AppState(context: Context) {
     var gpsLon by mutableStateOf(prefs.getFloat("gps_lon", Float.NaN).toDouble())
         private set
 
+    var checked by mutableStateOf(prefs.getStringSet("checked", emptySet())!!.toSet())
+        private set
+    var shotsPerDay by mutableStateOf(prefs.getInt("shots_per_day", 150))
+        private set
+    var tripDays by mutableStateOf(prefs.getInt("trip_days", 21))
+        private set
+
     val camera: CameraBody? get() = Gear.camera(cameraId)
+
+    fun toggleChecked(id: String) {
+        checked = if (id in checked) checked - id else checked + id
+        prefs.edit().putStringSet("checked", checked).apply()
+    }
+
+    fun setStoragePlan(perDay: Int, days: Int) {
+        shotsPerDay = perDay
+        tripDays = days
+        prefs.edit().putInt("shots_per_day", perDay).putInt("trip_days", days).apply()
+    }
 
     val lenses: List<Lens>
         get() = Gear.lenses.filter { it.id in lensIds } +
@@ -39,10 +57,12 @@ class AppState(context: Context) {
     /** The place used for sun/moon times. */
     val place: Place
         get() = if (placeId == Places.GPS_ID && !gpsLat.isNaN()) {
-            Place(Places.GPS_ID, "My location", String.format(java.util.Locale.US, "%.2f, %.2f", gpsLat, gpsLon),
-                gpsLat, gpsLon, ZoneId.systemDefault().id)
+            Place(
+                Places.GPS_ID, "My location", null, gpsLat, gpsLon, ZoneId.systemDefault().id,
+                String.format(java.util.Locale.US, "%.3f, %.3f", gpsLat, gpsLon),
+            )
         } else {
-            Places.byId(placeId) ?: Places.chile.first()
+            Places.byId(placeId) ?: Places.all.first()
         }
 
     fun selectCamera(id: String) {

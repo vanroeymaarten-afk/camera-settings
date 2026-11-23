@@ -1,11 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Mountains under a sun, inside a lens ring. 108dp canvas, safe zone is the central 66dp. -->
+<!-- Camera Coach icon: a snow-capped volcano at golden hour seen through a lens ring.
+     108dp canvas; everything important sits inside the 66dp safe zone. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="3.5"
-        android:pathData="M54,27a27,27 0 1,0 0.01,0z" />
-    <path android:fillColor="#FFB547" android:pathData="M64,40a6,6 0 1,0 0.01,0z" />
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M31,66 L45,46 L53,57 L59,50 L77,66 Q66,79 54,79 Q42,79 31,66z" />
+    <group>
+        <clip-path android:pathData="M54,29 a25,25 0 1,1 -0.01,0 z" />
+        <!-- sky -->
+        <path android:pathData="M28,28h52v52h-52z">
+            <aapt:attr name="android:fillColor">
+                <gradient android:type="linear"
+                    android:startX="54" android:startY="29" android:endX="54" android:endY="68">
+                    <item android:offset="0" android:color="#FF2C3A78" />
+                    <item android:offset="0.5" android:color="#FFD9787A" />
+                    <item android:offset="0.85" android:color="#FFFFB86E" />
+                    <item android:offset="1" android:color="#FFFFD49A" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <!-- sun -->
+        <path android:fillColor="#FFFFF2D2" android:pathData="M66.5,36 a4.6,4.6 0 1,1 -0.01,0 z" />
+        <!-- volcano -->
+        <path android:fillColor="#FF1C2247"
+            android:pathData="M22,72 L46.5,48.2 Q54,41.5 61.5,48.2 L86,72 Z" />
+        <!-- snow cap -->
+        <path android:fillColor="#FFFFE7E0"
+            android:pathData="M46.5,48.2 Q54,41.5 61.5,48.2 L60,49.6 L57.6,48.4 L55.6,50.6 L53.4,48.6 L51.2,50.8 L49.4,49 Z" />
+        <!-- lake -->
+        <path android:pathData="M22,70.5h64v14h-64z">
+            <aapt:attr name="android:fillColor">
+                <gradient android:type="linear"
+                    android:startX="54" android:startY="70" android:endX="54" android:endY="80">
+                    <item android:offset="0" android:color="#FF3A3F78" />
+                    <item android:offset="1" android:color="#FF1C2247" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path android:fillColor="#99FFC78A" android:pathData="M44,73.2h20v1.4h-20z" />
+        <path android:fillColor="#66FFC78A" android:pathData="M48,76.2h12v1.2h-12z" />
+    </group>
+    <!-- lens ring -->
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFF6EE" android:strokeWidth="3"
+        android:pathData="M54,26.5 a27.5,27.5 0 1,1 -0.01,0 z" />
+    <!-- aperture ticks -->
+    <path android:fillColor="#00000000" android:strokeColor="#80FFF6EE" android:strokeWidth="1.2" android:strokeLineCap="round"
+        android:pathData="M54,22.2 L54,24 M81.8,54 L80,54 M54,85.8 L54,84 M26.2,54 L28,54" />
 </vector>

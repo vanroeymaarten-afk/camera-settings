@@ -59,4 +59,13 @@ class AstroTest {
         val p = Astro.planDay(LocalDate.of(2026, 12, 24), santiago, -33.45, -70.67)
         assertTrue("illum ${p.moon.illumination}", p.moon.illumination > 0.95)
     }
+
+    @Test
+    fun starCalendarFindsDarkNightsAroundNewMoon() {
+        val cal = Astro.starCalendar(LocalDate.of(2026, 12, 1), 45, santiago, -22.91, -68.20)
+        val newMoon = cal.first { it.date == LocalDate.of(2026, 12, 9) }
+        val fullMoon = cal.first { it.date == LocalDate.of(2026, 12, 24) }
+        assertTrue("new moon night ${newMoon.moonFreeMinutes}", newMoon.moonFreeMinutes > 300)
+        assertTrue("full moon night ${fullMoon.moonFreeMinutes}", fullMoon.moonFreeMinutes < 30)
+    }
 }

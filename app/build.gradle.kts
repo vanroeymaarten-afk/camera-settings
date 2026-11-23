@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-        versionName = "0.1." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+        versionName = "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
     }
 
     // One shared key so every new build installs as an update over the old one.
@@ -45,13 +45,16 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     testOptions {
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
             // ./gradlew testDebugUnitTest -Pscreenshots  -> writes PNGs to app/screenshots/
             it.systemProperty("screenshots", if (project.hasProperty("screenshots")) "true" else "false")
+            if (!project.hasProperty("screenshots")) it.exclude("**/ScreenshotTest*")
             it.systemProperty("roborazzi.test.record", "true")
+            it.systemProperty("exportPresetsDir", if (project.hasProperty("exportPresets")) rootProject.file("presets").absolutePath else "")
             // Optional: point Robolectric at a pre-downloaded Android runtime (offline machines)
             System.getenv("ROBOLECTRIC_JARS")?.let { dir ->
                 it.systemProperty("robolectric.offline", "true")
