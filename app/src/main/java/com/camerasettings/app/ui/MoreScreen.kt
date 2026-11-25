@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Backpack
 import androidx.compose.material.icons.filled.CenterFocusStrong
@@ -81,6 +82,7 @@ object MoreRoutes {
     const val METER = "meter"
     const val DOF = "dof"
     const val PLACE = "place"
+    const val MANUAL = "manual"
     fun preset(id: String) = "preset:$id"
 }
 
@@ -102,6 +104,7 @@ fun MoreScreen(state: AppState, route: String?, onRoute: (String?) -> Unit, onGe
         route == MoreRoutes.METER -> Column { BackBar("Light meter", back); MeterScreen(state) }
         route == MoreRoutes.DOF -> DofScreen(state, back)
         route == MoreRoutes.PLACE -> PlacePicker(state, back)
+        route == MoreRoutes.MANUAL -> ManualScreen(state, back)
         else -> MoreHome(state, onRoute)
     }
 }
@@ -111,6 +114,8 @@ private fun MoreHome(state: AppState, onRoute: (String) -> Unit) {
     val done = Checklist.allIds.count { it in state.checked }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { ScreenTitle("More", "Tools, your camera, editing and settings.", eyebrow = "Camera Coach") }
+        item { SectionLabel("Your camera") }
+        item { NavRow(Icons.AutoMirrored.Filled.MenuBook, "Camera manual", "How do I…? for your ${state.camera?.name ?: "camera"}, and the official manual") { onRoute(MoreRoutes.MANUAL) } }
         item { SectionLabel("Tools") }
         item { NavRow(Icons.Filled.Exposure, "Light meter", "Use your phone to measure the light; ND filter calculator") { onRoute(MoreRoutes.METER) } }
         item { NavRow(Icons.Filled.CenterFocusStrong, "Sharpness zone (depth of field)", "How much will be sharp at your settings?") { onRoute(MoreRoutes.DOF) } }

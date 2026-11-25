@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Place
@@ -77,6 +78,7 @@ fun HomeScreen(
     onOpenPlan: () -> Unit,
     onOpenLesson: (String) -> Unit,
     onOpenProblem: (String) -> Unit,
+    onOpenManual: () -> Unit = {},
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var category by rememberSaveable { mutableStateOf<String?>(null) }
@@ -104,6 +106,11 @@ fun HomeScreen(
                         style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                     Icon(Icons.Filled.Edit, "Change camera", Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                androidx.compose.material3.TextButton(onClick = onOpenManual, modifier = Modifier.padding(top = 0.dp)) {
+                    Icon(androidx.compose.material.icons.Icons.AutoMirrored.Filled.MenuBook, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("How do I…? Open my camera's manual")
                 }
                 if (place != null) NextLightCard(place, onOpenPlan)
                 OutlinedTextField(

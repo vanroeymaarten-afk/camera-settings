@@ -116,4 +116,12 @@ class ContentTest {
         val fits = Gear.lensesFor(body).map { it.id }
         com.camerasettings.app.data.AppState.DEFAULT_LENSES.forEach { assertTrue(it, it in fits) }
     }
+
+    @Test
+    fun manual750dIsComplete() {
+        val m = com.camerasettings.app.data.Manuals.forCamera("750d")!!
+        assertTrue(m.topics.size >= 20 && m.buttons.size >= 10)
+        assertEquals(m.topics.size, m.topics.map { it.id }.toSet().size)
+        m.topics.forEach { assertTrue(it.id, it.steps.isNotEmpty()) }
+    }
 }

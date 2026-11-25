@@ -156,6 +156,7 @@ fun App(
                         onOpenPlan = { tab = Tab.PLAN },
                         onOpenLesson = { learn = "lesson:$it"; tab = Tab.LEARN },
                         onOpenProblem = { learn = "problem:$it"; tab = Tab.LEARN },
+                        onOpenManual = { more = MoreRoutes.MANUAL; tab = Tab.MORE },
                     )
                 }
                 Tab.LEARN -> LearnScreen(state, learn, onRoute = { learn = it }, onPractice = openScene)

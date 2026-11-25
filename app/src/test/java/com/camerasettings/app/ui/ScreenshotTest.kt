@@ -77,6 +77,7 @@ class ScreenshotTest {
     @Test fun m_settings() { withGear(); show("13_settings", Tab.MORE, more = MoreRoutes.SETTINGS) }
     @Test fun n_nikon() { withGear("z50", listOf("nzdx16-50")); show("14_scene_nikon_wildlife", scene = "wildlife") }
     @Test fun o_bigText() { withGear(); show("15_home_large_text", scale = 1.3f) }
+    @Test fun q_manual() { withGear("750d", listOf("efs18-55", "tamron18-270")); show("17_camera_manual", Tab.MORE, more = MoreRoutes.MANUAL) }
     @Test fun p_place() { withGear(); show("16_place_picker", Tab.MORE, more = MoreRoutes.PLACE) }
 
     @Test
