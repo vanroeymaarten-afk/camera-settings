@@ -119,8 +119,8 @@ class AppState(context: Context) {
     companion object {
         const val CUSTOM_LENS_ID = "custom"
 
-        /** The owner's camera (Canon EOS 750D, from a photo's EXIF data). Lens to be confirmed. */
+        /** The owner's kit: Canon EOS 750D with its 18-55mm kit lens and a Tamron 18-270mm. */
         const val DEFAULT_CAMERA = "750d"
-        val DEFAULT_LENSES = setOf("efs18-135")
+        val DEFAULT_LENSES = setOf("efs18-55", "tamron18-270")
     }
 }

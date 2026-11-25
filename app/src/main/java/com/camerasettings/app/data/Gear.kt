@@ -205,8 +205,9 @@ object Gear {
         Lens("rfs18-150", "RF-S 18-150mm f/3.5-6.3 IS STM", 18, 150, 3.5, 6.3, true, "RF-S"),
         Lens("rfs55-210", "RF-S 55-210mm f/5-7.1 IS STM", 55, 210, 5.0, 7.1, true, "RF-S"),
         // Canon EF / EF-S / EF-M
+        Lens("tamron18-270", "Tamron 18-270mm f/3.5-6.3 Di II VC PZD", 18, 270, 3.5, 6.3, true, "EF-S"),
         Lens("efs10-18", "EF-S 10-18mm f/4.5-5.6 IS STM", 10, 18, 4.5, 5.6, true, "EF-S"),
-        Lens("efs18-55", "EF-S 18-55mm f/3.5-5.6 IS (kit)", 18, 55, 3.5, 5.6, true, "EF-S"),
+        Lens("efs18-55", "EF-S 18-55mm f/3.5-5.6 IS STM (kit)", 18, 55, 3.5, 5.6, true, "EF-S"),
         Lens("efs18-55nois", "EF-S 18-55mm f/3.5-5.6 III (no IS)", 18, 55, 3.5, 5.6, false, "EF-S"),
         Lens("efs18-135", "EF-S 18-135mm f/3.5-5.6 IS", 18, 135, 3.5, 5.6, true, "EF-S"),
         Lens("efs55-250", "EF-S 55-250mm f/4-5.6 IS STM", 55, 250, 4.0, 5.6, true, "EF-S"),
